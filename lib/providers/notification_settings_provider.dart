@@ -73,34 +73,26 @@ class NotificationSettingsRepository {
     required int thresholdHours,
     required bool enabled,
   }) {
-    // Runs as a single transaction so two near-simultaneous edits (e.g.
+    // A single atomic "INSERT ... ON CONFLICT DO UPDATE", relying on the
+    // unique index on event_type, so two near-simultaneous edits (e.g.
     // toggling the enable switch and saving the threshold dialog right
-    // after) can't both see "no existing row" and insert duplicate rows
-    // for the same event type — only one upsert can read-then-write this
-    // event type at a time.
-    return _db.transaction(() async {
-      final existing = await (_db.select(_db.notificationSettings)
-            ..where((t) => t.eventType.equals(eventType.storageKey)))
-          .getSingleOrNull();
-
-      if (existing == null) {
-        await _db.into(_db.notificationSettings).insert(
-              NotificationSettingsCompanion.insert(
-                id: _uuid.v4(),
-                eventType: eventType.storageKey,
-                thresholdHours: thresholdHours,
-                enabled: Value(enabled),
-              ),
-            );
-      } else {
-        await _db.update(_db.notificationSettings).replace(
-              existing.copyWith(
-                thresholdHours: thresholdHours,
-                enabled: enabled,
-              ),
-            );
-      }
-    });
+    // after) can't race a separate read-then-write and leave a stale
+    // threshold to resurface — the database itself serializes the conflict.
+    return _db.into(_db.notificationSettings).insert(
+          NotificationSettingsCompanion.insert(
+            id: _uuid.v4(),
+            eventType: eventType.storageKey,
+            thresholdHours: thresholdHours,
+            enabled: Value(enabled),
+          ),
+          onConflict: DoUpdate(
+            (_) => NotificationSettingsCompanion(
+              thresholdHours: Value(thresholdHours),
+              enabled: Value(enabled),
+            ),
+            target: [_db.notificationSettings.eventType],
+          ),
+        );
   }
 }
 

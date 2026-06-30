@@ -34,7 +34,7 @@ class Events extends Table {
 
 class NotificationSettings extends Table {
   TextColumn get id => text()();
-  TextColumn get eventType => text()();
+  TextColumn get eventType => text().unique()();
   IntColumn get thresholdHours => integer()();
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
 
@@ -79,12 +79,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection('pawlog'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+      await _ensureNotificationSettingsEventTypeUnique();
     },
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 2) {
@@ -92,16 +93,30 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(feedingSchedules);
         await m.createTable(feedingSlots);
       }
-    },
-    beforeOpen: (details) async {
-      // A past race in NotificationSettingsRepository.upsert could insert
-      // more than one row for the same event type before a unique
-      // constraint existed. Keep only the most recently written row per
-      // event type so a stale threshold can't keep resurfacing.
-      await customStatement(
-        'DELETE FROM notification_settings WHERE rowid NOT IN '
-        '(SELECT MAX(rowid) FROM notification_settings GROUP BY event_type)',
-      );
+      if (from < 3) {
+        // NotificationSettingsRepository.upsert used to do a select-then-
+        // insert/update with no DB-level uniqueness on event_type, so two
+        // near-simultaneous writes could each insert their own row for the
+        // same event type — the most recent write didn't always win, and a
+        // stale threshold could resurface without the row being deleted.
+        // Collapse any rows that already duplicated this way down to the
+        // most recently written one per event type, then add a real unique
+        // constraint so the upsert can use a single atomic SQL statement
+        // instead of a race-prone read-then-write.
+        await customStatement(
+          'DELETE FROM notification_settings WHERE rowid NOT IN '
+          '(SELECT MAX(rowid) FROM notification_settings GROUP BY event_type)',
+        );
+        await _ensureNotificationSettingsEventTypeUnique();
+      }
     },
   );
+
+  Future<void> _ensureNotificationSettingsEventTypeUnique() {
+    return customStatement(
+      'CREATE UNIQUE INDEX IF NOT EXISTS '
+      'notification_settings_event_type_unique '
+      'ON notification_settings (event_type)',
+    );
+  }
 }
