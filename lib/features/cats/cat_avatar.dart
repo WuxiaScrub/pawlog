@@ -1,8 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+
+import '../../core/local_photo.dart';
 
 /// Circular cat profile image. Falls back to a paw icon when no photo has
 /// been set, or the stored file is missing. [photoPath] is either a native
@@ -15,7 +13,7 @@ class CatAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = _resolveImage();
+    final image = resolveLocalPhoto(photoPath);
     if (image != null) {
       return CircleAvatar(radius: radius, backgroundImage: image);
     }
@@ -23,18 +21,5 @@ class CatAvatar extends StatelessWidget {
       radius: radius,
       child: Icon(Icons.pets, size: radius),
     );
-  }
-
-  ImageProvider? _resolveImage() {
-    final path = photoPath;
-    if (path == null || path.isEmpty) return null;
-
-    if (path.startsWith('data:')) {
-      final base64Data = path.substring(path.indexOf(',') + 1);
-      return MemoryImage(base64Decode(base64Data));
-    }
-
-    if (kIsWeb) return null;
-    return File(path).existsSync() ? FileImage(File(path)) : null;
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/database.dart';
+import '../../core/local_photo.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 
@@ -19,6 +20,8 @@ class EventDetailScreen extends ConsumerWidget {
     final metadata = event.metadataJson != null
         ? jsonDecode(event.metadataJson!) as Map<String, dynamic>
         : <String, dynamic>{};
+    final photoPath = metadata.remove('photo_path') as String?;
+    final photo = resolveLocalPhoto(photoPath);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,6 +46,16 @@ class EventDetailScreen extends ConsumerWidget {
               DateFormat.yMMMd().add_jm().format(event.loggedAt),
             ),
           ),
+          if (photo != null) ...[
+            const Divider(),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Image(image: photo, fit: BoxFit.cover),
+              ),
+            ),
+          ],
           if (event.notes != null && event.notes!.isNotEmpty) ...[
             const Divider(),
             const Padding(

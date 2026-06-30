@@ -5,9 +5,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-/// Handles picking a cat profile photo and copying it into app-local
-/// storage so it survives independent of wherever the OS picker sourced it
-/// from (camera roll, cloud-backed photo, etc).
+/// Handles picking a photo (cat profile or event log) and copying it into
+/// app-local storage so it survives independent of wherever the OS picker
+/// sourced it from (camera roll, cloud-backed photo, etc).
 class PhotoStorage {
   const PhotoStorage();
 
@@ -23,7 +23,7 @@ class PhotoStorage {
     if (picked == null) return null;
 
     final docsDir = await getApplicationDocumentsDirectory();
-    final photosDir = Directory(p.join(docsDir.path, 'cat_photos'));
+    final photosDir = Directory(p.join(docsDir.path, 'photos'));
     if (!await photosDir.exists()) {
       await photosDir.create(recursive: true);
     }

@@ -5,7 +5,8 @@ import 'package:image_picker/image_picker.dart';
 /// Web counterpart to the native [PhotoStorage]. The browser has no
 /// filesystem to copy a picked photo into (and `picked.path` is just a
 /// transient blob: URL), so the image bytes are base64-encoded into a data
-/// URL and stored directly in the `photoPath` column instead of a path.
+/// URL and stored directly wherever the caller persists the path/metadata
+/// string instead of a real file path.
 class PhotoStorage {
   const PhotoStorage();
 
