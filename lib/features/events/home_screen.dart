@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
+import '../../providers/feeding_provider.dart';
+import '../cats/cat_avatar.dart';
 import 'log_event_sheet.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -15,9 +17,19 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(eventsStreamProvider(cat.id));
+    final scheduleAsync = ref.watch(feedingScheduleStreamProvider(cat.id));
+    final hasFeedingSchedule = scheduleAsync.value != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(cat.name)),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            CatAvatar(photoPath: cat.photoPath, radius: 16),
+            const SizedBox(width: 12),
+            Text(cat.name),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -32,6 +44,10 @@ class HomeScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (hasFeedingSchedule) ...[
+            _TodaysFeedingsCard(catId: cat.id),
+            const SizedBox(height: 24),
+          ],
           Text('Log an event', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           GridView.count(
@@ -43,14 +59,15 @@ class HomeScreen extends ConsumerWidget {
             childAspectRatio: 0.9,
             children: [
               for (final type in CatEventType.values)
-                _QuickLogButton(
-                  eventType: type,
-                  onTap: () => showLogEventSheet(
-                    context,
-                    catId: cat.id,
+                if (!(hasFeedingSchedule && type == CatEventType.feeding))
+                  _QuickLogButton(
                     eventType: type,
+                    onTap: () => showLogEventSheet(
+                      context,
+                      catId: cat.id,
+                      eventType: type,
+                    ),
                   ),
-                ),
             ],
           ),
           const SizedBox(height: 24),
@@ -117,6 +134,86 @@ class _QuickLogButton extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TodaysFeedingsCard extends ConsumerWidget {
+  const _TodaysFeedingsCard({required this.catId});
+
+  final String catId;
+
+  Future<void> _markFed(WidgetRef ref, FeedingSlotStatus status) {
+    return ref.read(eventsRepositoryProvider).logEvent(
+      catId: catId,
+      eventType: CatEventType.feeding,
+      metadata: {
+        'slot_id': status.slot.id,
+        'slot_label': status.slot.label,
+        'schedule_id': status.slot.scheduleId,
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(todaysFeedingStatusProvider(catId));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Today's Feedings",
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            statusAsync.when(
+              data: (statuses) {
+                if (statuses.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No feeding slots set up.'),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final status in statuses)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          status.isFed
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: status.isFed ? Colors.green : null,
+                        ),
+                        title: Text(status.slot.label),
+                        subtitle: Text(
+                          status.isFed
+                              ? 'Fed at ${DateFormat.jm().format(status.fedAt!)}'
+                              : '${status.slot.hour.toString().padLeft(2, '0')}:${status.slot.minute.toString().padLeft(2, '0')}',
+                        ),
+                        trailing: status.isFed
+                            ? null
+                            : FilledButton(
+                                onPressed: () => _markFed(ref, status),
+                                child: const Text('Mark fed'),
+                              ),
+                      ),
+                  ],
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: LinearProgressIndicator(),
+              ),
+              error: (e, _) => Text('Error loading feedings: $e'),
+            ),
+          ],
         ),
       ),
     );

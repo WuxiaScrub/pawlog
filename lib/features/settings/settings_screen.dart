@@ -5,6 +5,7 @@ import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/notification_settings_provider.dart';
 import '../cats/cat_profile_setup_screen.dart';
+import '../feeding/feeding_schedule_setup_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, required this.cat});
@@ -28,6 +29,17 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => CatProfileSetupScreen(existingCat: cat),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.restaurant),
+            title: const Text('Feeding schedule'),
+            subtitle: const Text('Optional — track feedings by time slot'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => FeedingScheduleSetupScreen(cat: cat),
               ),
             ),
           ),

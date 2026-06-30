@@ -1,9 +1,17 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/database.dart';
+import '../../core/photo_storage.dart';
 import '../../providers/cats_provider.dart';
+import 'cat_avatar.dart';
+
+class _PhotoChoice {
+  _PhotoChoice(this.source);
+  final ImageSource? source;
+}
 
 class CatProfileSetupScreen extends ConsumerStatefulWidget {
   const CatProfileSetupScreen({super.key, this.existingCat});
@@ -22,7 +30,10 @@ class _CatProfileSetupScreenState
   late final TextEditingController _breedController;
   late final TextEditingController _weightController;
   DateTime? _dateOfBirth;
+  String? _photoPath;
   bool _saving = false;
+
+  final _photoStorage = const PhotoStorage();
 
   @override
   void initState() {
@@ -33,6 +44,7 @@ class _CatProfileSetupScreenState
     _weightController =
         TextEditingController(text: cat?.weightKg?.toString() ?? '');
     _dateOfBirth = cat?.dateOfBirth;
+    _photoPath = cat?.photoPath;
   }
 
   @override
@@ -53,6 +65,48 @@ class _CatProfileSetupScreenState
     if (picked != null) setState(() => _dateOfBirth = picked);
   }
 
+  Future<void> _pickPhoto() async {
+    final result = await showModalBottomSheet<_PhotoChoice>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.of(sheetContext)
+                  .pop(_PhotoChoice(ImageSource.camera)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.of(sheetContext)
+                  .pop(_PhotoChoice(ImageSource.gallery)),
+            ),
+            if (_photoPath != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remove photo'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_PhotoChoice(null)),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    if (result.source == null) {
+      setState(() => _photoPath = null);
+      return;
+    }
+
+    final saved = await _photoStorage.pickAndSave(source: result.source!);
+    if (saved != null) setState(() => _photoPath = saved);
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -68,6 +122,7 @@ class _CatProfileSetupScreenState
             : _breedController.text.trim(),
         dateOfBirth: _dateOfBirth,
         weightKg: weight,
+        photoPath: _photoPath,
       );
     } else {
       await repo.updateCat(
@@ -80,6 +135,7 @@ class _CatProfileSetupScreenState
           ),
           dateOfBirth: drift.Value(_dateOfBirth),
           weightKg: drift.Value(weight),
+          photoPath: drift.Value(_photoPath),
         ),
       );
     }
@@ -103,6 +159,22 @@ class _CatProfileSetupScreenState
           key: _formKey,
           child: ListView(
             children: [
+              Center(
+                child: Stack(
+                  children: [
+                    CatAvatar(photoPath: _photoPath, radius: 48),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: IconButton.filled(
+                        icon: const Icon(Icons.edit, size: 18),
+                        onPressed: _pickPhoto,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               if (!isEditing)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),

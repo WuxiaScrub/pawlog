@@ -57,6 +57,17 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta(
+    'photoPath',
+  );
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -76,6 +87,7 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
     breed,
     dateOfBirth,
     weightKg,
+    photoPath,
     createdAt,
   ];
   @override
@@ -124,6 +136,12 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
         weightKg.isAcceptableOrUnknown(data['weight_kg']!, _weightKgMeta),
       );
     }
+    if (data.containsKey('photo_path')) {
+      context.handle(
+        _photoPathMeta,
+        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -159,6 +177,10 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
         DriftSqlType.double,
         data['${effectivePrefix}weight_kg'],
       ),
+      photoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_path'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -178,6 +200,7 @@ class Cat extends DataClass implements Insertable<Cat> {
   final String? breed;
   final DateTime? dateOfBirth;
   final double? weightKg;
+  final String? photoPath;
   final DateTime createdAt;
   const Cat({
     required this.id,
@@ -185,6 +208,7 @@ class Cat extends DataClass implements Insertable<Cat> {
     this.breed,
     this.dateOfBirth,
     this.weightKg,
+    this.photoPath,
     required this.createdAt,
   });
   @override
@@ -200,6 +224,9 @@ class Cat extends DataClass implements Insertable<Cat> {
     }
     if (!nullToAbsent || weightKg != null) {
       map['weight_kg'] = Variable<double>(weightKg);
+    }
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -218,6 +245,9 @@ class Cat extends DataClass implements Insertable<Cat> {
       weightKg: weightKg == null && nullToAbsent
           ? const Value.absent()
           : Value(weightKg),
+      photoPath: photoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPath),
       createdAt: Value(createdAt),
     );
   }
@@ -233,6 +263,7 @@ class Cat extends DataClass implements Insertable<Cat> {
       breed: serializer.fromJson<String?>(json['breed']),
       dateOfBirth: serializer.fromJson<DateTime?>(json['dateOfBirth']),
       weightKg: serializer.fromJson<double?>(json['weightKg']),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -245,6 +276,7 @@ class Cat extends DataClass implements Insertable<Cat> {
       'breed': serializer.toJson<String?>(breed),
       'dateOfBirth': serializer.toJson<DateTime?>(dateOfBirth),
       'weightKg': serializer.toJson<double?>(weightKg),
+      'photoPath': serializer.toJson<String?>(photoPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -255,6 +287,7 @@ class Cat extends DataClass implements Insertable<Cat> {
     Value<String?> breed = const Value.absent(),
     Value<DateTime?> dateOfBirth = const Value.absent(),
     Value<double?> weightKg = const Value.absent(),
+    Value<String?> photoPath = const Value.absent(),
     DateTime? createdAt,
   }) => Cat(
     id: id ?? this.id,
@@ -262,6 +295,7 @@ class Cat extends DataClass implements Insertable<Cat> {
     breed: breed.present ? breed.value : this.breed,
     dateOfBirth: dateOfBirth.present ? dateOfBirth.value : this.dateOfBirth,
     weightKg: weightKg.present ? weightKg.value : this.weightKg,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
     createdAt: createdAt ?? this.createdAt,
   );
   Cat copyWithCompanion(CatsCompanion data) {
@@ -273,6 +307,7 @@ class Cat extends DataClass implements Insertable<Cat> {
           ? data.dateOfBirth.value
           : this.dateOfBirth,
       weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -285,6 +320,7 @@ class Cat extends DataClass implements Insertable<Cat> {
           ..write('breed: $breed, ')
           ..write('dateOfBirth: $dateOfBirth, ')
           ..write('weightKg: $weightKg, ')
+          ..write('photoPath: $photoPath, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -292,7 +328,7 @@ class Cat extends DataClass implements Insertable<Cat> {
 
   @override
   int get hashCode =>
-      Object.hash(id, name, breed, dateOfBirth, weightKg, createdAt);
+      Object.hash(id, name, breed, dateOfBirth, weightKg, photoPath, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -302,6 +338,7 @@ class Cat extends DataClass implements Insertable<Cat> {
           other.breed == this.breed &&
           other.dateOfBirth == this.dateOfBirth &&
           other.weightKg == this.weightKg &&
+          other.photoPath == this.photoPath &&
           other.createdAt == this.createdAt);
 }
 
@@ -311,6 +348,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
   final Value<String?> breed;
   final Value<DateTime?> dateOfBirth;
   final Value<double?> weightKg;
+  final Value<String?> photoPath;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const CatsCompanion({
@@ -319,6 +357,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     this.breed = const Value.absent(),
     this.dateOfBirth = const Value.absent(),
     this.weightKg = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -328,6 +367,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     this.breed = const Value.absent(),
     this.dateOfBirth = const Value.absent(),
     this.weightKg = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -338,6 +378,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     Expression<String>? breed,
     Expression<DateTime>? dateOfBirth,
     Expression<double>? weightKg,
+    Expression<String>? photoPath,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -347,6 +388,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
       if (breed != null) 'breed': breed,
       if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
       if (weightKg != null) 'weight_kg': weightKg,
+      if (photoPath != null) 'photo_path': photoPath,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -358,6 +400,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     Value<String?>? breed,
     Value<DateTime?>? dateOfBirth,
     Value<double?>? weightKg,
+    Value<String?>? photoPath,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -367,6 +410,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
       breed: breed ?? this.breed,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       weightKg: weightKg ?? this.weightKg,
+      photoPath: photoPath ?? this.photoPath,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -390,6 +434,9 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     if (weightKg.present) {
       map['weight_kg'] = Variable<double>(weightKg.value);
     }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -407,6 +454,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
           ..write('breed: $breed, ')
           ..write('dateOfBirth: $dateOfBirth, ')
           ..write('weightKg: $weightKg, ')
+          ..write('photoPath: $photoPath, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1202,6 +1250,835 @@ class NotificationSettingsCompanion
   }
 }
 
+class $FeedingSchedulesTable extends FeedingSchedules
+    with TableInfo<$FeedingSchedulesTable, FeedingSchedule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FeedingSchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _catIdMeta = const VerificationMeta('catId');
+  @override
+  late final GeneratedColumn<String> catId = GeneratedColumn<String>(
+    'cat_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES cats (id)',
+    ),
+  );
+  static const VerificationMeta _timesPerDayMeta = const VerificationMeta(
+    'timesPerDay',
+  );
+  @override
+  late final GeneratedColumn<int> timesPerDay = GeneratedColumn<int>(
+    'times_per_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    catId,
+    timesPerDay,
+    enabled,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'feeding_schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FeedingSchedule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('cat_id')) {
+      context.handle(
+        _catIdMeta,
+        catId.isAcceptableOrUnknown(data['cat_id']!, _catIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_catIdMeta);
+    }
+    if (data.containsKey('times_per_day')) {
+      context.handle(
+        _timesPerDayMeta,
+        timesPerDay.isAcceptableOrUnknown(
+          data['times_per_day']!,
+          _timesPerDayMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_timesPerDayMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FeedingSchedule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FeedingSchedule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      catId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cat_id'],
+      )!,
+      timesPerDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}times_per_day'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $FeedingSchedulesTable createAlias(String alias) {
+    return $FeedingSchedulesTable(attachedDatabase, alias);
+  }
+}
+
+class FeedingSchedule extends DataClass implements Insertable<FeedingSchedule> {
+  final String id;
+  final String catId;
+  final int timesPerDay;
+  final bool enabled;
+  final DateTime createdAt;
+  const FeedingSchedule({
+    required this.id,
+    required this.catId,
+    required this.timesPerDay,
+    required this.enabled,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['cat_id'] = Variable<String>(catId);
+    map['times_per_day'] = Variable<int>(timesPerDay);
+    map['enabled'] = Variable<bool>(enabled);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  FeedingSchedulesCompanion toCompanion(bool nullToAbsent) {
+    return FeedingSchedulesCompanion(
+      id: Value(id),
+      catId: Value(catId),
+      timesPerDay: Value(timesPerDay),
+      enabled: Value(enabled),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory FeedingSchedule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FeedingSchedule(
+      id: serializer.fromJson<String>(json['id']),
+      catId: serializer.fromJson<String>(json['catId']),
+      timesPerDay: serializer.fromJson<int>(json['timesPerDay']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'catId': serializer.toJson<String>(catId),
+      'timesPerDay': serializer.toJson<int>(timesPerDay),
+      'enabled': serializer.toJson<bool>(enabled),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  FeedingSchedule copyWith({
+    String? id,
+    String? catId,
+    int? timesPerDay,
+    bool? enabled,
+    DateTime? createdAt,
+  }) => FeedingSchedule(
+    id: id ?? this.id,
+    catId: catId ?? this.catId,
+    timesPerDay: timesPerDay ?? this.timesPerDay,
+    enabled: enabled ?? this.enabled,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  FeedingSchedule copyWithCompanion(FeedingSchedulesCompanion data) {
+    return FeedingSchedule(
+      id: data.id.present ? data.id.value : this.id,
+      catId: data.catId.present ? data.catId.value : this.catId,
+      timesPerDay: data.timesPerDay.present
+          ? data.timesPerDay.value
+          : this.timesPerDay,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FeedingSchedule(')
+          ..write('id: $id, ')
+          ..write('catId: $catId, ')
+          ..write('timesPerDay: $timesPerDay, ')
+          ..write('enabled: $enabled, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, catId, timesPerDay, enabled, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FeedingSchedule &&
+          other.id == this.id &&
+          other.catId == this.catId &&
+          other.timesPerDay == this.timesPerDay &&
+          other.enabled == this.enabled &&
+          other.createdAt == this.createdAt);
+}
+
+class FeedingSchedulesCompanion extends UpdateCompanion<FeedingSchedule> {
+  final Value<String> id;
+  final Value<String> catId;
+  final Value<int> timesPerDay;
+  final Value<bool> enabled;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const FeedingSchedulesCompanion({
+    this.id = const Value.absent(),
+    this.catId = const Value.absent(),
+    this.timesPerDay = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FeedingSchedulesCompanion.insert({
+    required String id,
+    required String catId,
+    required int timesPerDay,
+    this.enabled = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       catId = Value(catId),
+       timesPerDay = Value(timesPerDay);
+  static Insertable<FeedingSchedule> custom({
+    Expression<String>? id,
+    Expression<String>? catId,
+    Expression<int>? timesPerDay,
+    Expression<bool>? enabled,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (catId != null) 'cat_id': catId,
+      if (timesPerDay != null) 'times_per_day': timesPerDay,
+      if (enabled != null) 'enabled': enabled,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FeedingSchedulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? catId,
+    Value<int>? timesPerDay,
+    Value<bool>? enabled,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return FeedingSchedulesCompanion(
+      id: id ?? this.id,
+      catId: catId ?? this.catId,
+      timesPerDay: timesPerDay ?? this.timesPerDay,
+      enabled: enabled ?? this.enabled,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (catId.present) {
+      map['cat_id'] = Variable<String>(catId.value);
+    }
+    if (timesPerDay.present) {
+      map['times_per_day'] = Variable<int>(timesPerDay.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FeedingSchedulesCompanion(')
+          ..write('id: $id, ')
+          ..write('catId: $catId, ')
+          ..write('timesPerDay: $timesPerDay, ')
+          ..write('enabled: $enabled, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FeedingSlotsTable extends FeedingSlots
+    with TableInfo<$FeedingSlotsTable, FeedingSlot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FeedingSlotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scheduleIdMeta = const VerificationMeta(
+    'scheduleId',
+  );
+  @override
+  late final GeneratedColumn<String> scheduleId = GeneratedColumn<String>(
+    'schedule_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES feeding_schedules (id)',
+    ),
+  );
+  static const VerificationMeta _catIdMeta = const VerificationMeta('catId');
+  @override
+  late final GeneratedColumn<String> catId = GeneratedColumn<String>(
+    'cat_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES cats (id)',
+    ),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hourMeta = const VerificationMeta('hour');
+  @override
+  late final GeneratedColumn<int> hour = GeneratedColumn<int>(
+    'hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _minuteMeta = const VerificationMeta(
+    'minute',
+  );
+  @override
+  late final GeneratedColumn<int> minute = GeneratedColumn<int>(
+    'minute',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    scheduleId,
+    catId,
+    label,
+    hour,
+    minute,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'feeding_slots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FeedingSlot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('schedule_id')) {
+      context.handle(
+        _scheduleIdMeta,
+        scheduleId.isAcceptableOrUnknown(
+          data['schedule_id']!,
+          _scheduleIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_scheduleIdMeta);
+    }
+    if (data.containsKey('cat_id')) {
+      context.handle(
+        _catIdMeta,
+        catId.isAcceptableOrUnknown(data['cat_id']!, _catIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_catIdMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('hour')) {
+      context.handle(
+        _hourMeta,
+        hour.isAcceptableOrUnknown(data['hour']!, _hourMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hourMeta);
+    }
+    if (data.containsKey('minute')) {
+      context.handle(
+        _minuteMeta,
+        minute.isAcceptableOrUnknown(data['minute']!, _minuteMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_minuteMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FeedingSlot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FeedingSlot(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      scheduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schedule_id'],
+      )!,
+      catId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cat_id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      hour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour'],
+      )!,
+      minute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minute'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $FeedingSlotsTable createAlias(String alias) {
+    return $FeedingSlotsTable(attachedDatabase, alias);
+  }
+}
+
+class FeedingSlot extends DataClass implements Insertable<FeedingSlot> {
+  final String id;
+  final String scheduleId;
+  final String catId;
+  final String label;
+  final int hour;
+  final int minute;
+  final int sortOrder;
+  const FeedingSlot({
+    required this.id,
+    required this.scheduleId,
+    required this.catId,
+    required this.label,
+    required this.hour,
+    required this.minute,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['schedule_id'] = Variable<String>(scheduleId);
+    map['cat_id'] = Variable<String>(catId);
+    map['label'] = Variable<String>(label);
+    map['hour'] = Variable<int>(hour);
+    map['minute'] = Variable<int>(minute);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  FeedingSlotsCompanion toCompanion(bool nullToAbsent) {
+    return FeedingSlotsCompanion(
+      id: Value(id),
+      scheduleId: Value(scheduleId),
+      catId: Value(catId),
+      label: Value(label),
+      hour: Value(hour),
+      minute: Value(minute),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory FeedingSlot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FeedingSlot(
+      id: serializer.fromJson<String>(json['id']),
+      scheduleId: serializer.fromJson<String>(json['scheduleId']),
+      catId: serializer.fromJson<String>(json['catId']),
+      label: serializer.fromJson<String>(json['label']),
+      hour: serializer.fromJson<int>(json['hour']),
+      minute: serializer.fromJson<int>(json['minute']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'scheduleId': serializer.toJson<String>(scheduleId),
+      'catId': serializer.toJson<String>(catId),
+      'label': serializer.toJson<String>(label),
+      'hour': serializer.toJson<int>(hour),
+      'minute': serializer.toJson<int>(minute),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  FeedingSlot copyWith({
+    String? id,
+    String? scheduleId,
+    String? catId,
+    String? label,
+    int? hour,
+    int? minute,
+    int? sortOrder,
+  }) => FeedingSlot(
+    id: id ?? this.id,
+    scheduleId: scheduleId ?? this.scheduleId,
+    catId: catId ?? this.catId,
+    label: label ?? this.label,
+    hour: hour ?? this.hour,
+    minute: minute ?? this.minute,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  FeedingSlot copyWithCompanion(FeedingSlotsCompanion data) {
+    return FeedingSlot(
+      id: data.id.present ? data.id.value : this.id,
+      scheduleId: data.scheduleId.present
+          ? data.scheduleId.value
+          : this.scheduleId,
+      catId: data.catId.present ? data.catId.value : this.catId,
+      label: data.label.present ? data.label.value : this.label,
+      hour: data.hour.present ? data.hour.value : this.hour,
+      minute: data.minute.present ? data.minute.value : this.minute,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FeedingSlot(')
+          ..write('id: $id, ')
+          ..write('scheduleId: $scheduleId, ')
+          ..write('catId: $catId, ')
+          ..write('label: $label, ')
+          ..write('hour: $hour, ')
+          ..write('minute: $minute, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, scheduleId, catId, label, hour, minute, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FeedingSlot &&
+          other.id == this.id &&
+          other.scheduleId == this.scheduleId &&
+          other.catId == this.catId &&
+          other.label == this.label &&
+          other.hour == this.hour &&
+          other.minute == this.minute &&
+          other.sortOrder == this.sortOrder);
+}
+
+class FeedingSlotsCompanion extends UpdateCompanion<FeedingSlot> {
+  final Value<String> id;
+  final Value<String> scheduleId;
+  final Value<String> catId;
+  final Value<String> label;
+  final Value<int> hour;
+  final Value<int> minute;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const FeedingSlotsCompanion({
+    this.id = const Value.absent(),
+    this.scheduleId = const Value.absent(),
+    this.catId = const Value.absent(),
+    this.label = const Value.absent(),
+    this.hour = const Value.absent(),
+    this.minute = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FeedingSlotsCompanion.insert({
+    required String id,
+    required String scheduleId,
+    required String catId,
+    required String label,
+    required int hour,
+    required int minute,
+    required int sortOrder,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       scheduleId = Value(scheduleId),
+       catId = Value(catId),
+       label = Value(label),
+       hour = Value(hour),
+       minute = Value(minute),
+       sortOrder = Value(sortOrder);
+  static Insertable<FeedingSlot> custom({
+    Expression<String>? id,
+    Expression<String>? scheduleId,
+    Expression<String>? catId,
+    Expression<String>? label,
+    Expression<int>? hour,
+    Expression<int>? minute,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (scheduleId != null) 'schedule_id': scheduleId,
+      if (catId != null) 'cat_id': catId,
+      if (label != null) 'label': label,
+      if (hour != null) 'hour': hour,
+      if (minute != null) 'minute': minute,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FeedingSlotsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? scheduleId,
+    Value<String>? catId,
+    Value<String>? label,
+    Value<int>? hour,
+    Value<int>? minute,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return FeedingSlotsCompanion(
+      id: id ?? this.id,
+      scheduleId: scheduleId ?? this.scheduleId,
+      catId: catId ?? this.catId,
+      label: label ?? this.label,
+      hour: hour ?? this.hour,
+      minute: minute ?? this.minute,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (scheduleId.present) {
+      map['schedule_id'] = Variable<String>(scheduleId.value);
+    }
+    if (catId.present) {
+      map['cat_id'] = Variable<String>(catId.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (hour.present) {
+      map['hour'] = Variable<int>(hour.value);
+    }
+    if (minute.present) {
+      map['minute'] = Variable<int>(minute.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FeedingSlotsCompanion(')
+          ..write('id: $id, ')
+          ..write('scheduleId: $scheduleId, ')
+          ..write('catId: $catId, ')
+          ..write('label: $label, ')
+          ..write('hour: $hour, ')
+          ..write('minute: $minute, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1209,6 +2086,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EventsTable events = $EventsTable(this);
   late final $NotificationSettingsTable notificationSettings =
       $NotificationSettingsTable(this);
+  late final $FeedingSchedulesTable feedingSchedules = $FeedingSchedulesTable(
+    this,
+  );
+  late final $FeedingSlotsTable feedingSlots = $FeedingSlotsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1217,6 +2098,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cats,
     events,
     notificationSettings,
+    feedingSchedules,
+    feedingSlots,
   ];
 }
 
@@ -1227,6 +2110,7 @@ typedef $$CatsTableCreateCompanionBuilder =
       Value<String?> breed,
       Value<DateTime?> dateOfBirth,
       Value<double?> weightKg,
+      Value<String?> photoPath,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -1237,6 +2121,7 @@ typedef $$CatsTableUpdateCompanionBuilder =
       Value<String?> breed,
       Value<DateTime?> dateOfBirth,
       Value<double?> weightKg,
+      Value<String?> photoPath,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -1456,6 +2341,7 @@ class $$CatsTableTableManager
                 Value<String?> breed = const Value.absent(),
                 Value<DateTime?> dateOfBirth = const Value.absent(),
                 Value<double?> weightKg = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatsCompanion(
@@ -1464,6 +2350,7 @@ class $$CatsTableTableManager
                 breed: breed,
                 dateOfBirth: dateOfBirth,
                 weightKg: weightKg,
+                photoPath: photoPath,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -1474,6 +2361,7 @@ class $$CatsTableTableManager
                 Value<String?> breed = const Value.absent(),
                 Value<DateTime?> dateOfBirth = const Value.absent(),
                 Value<double?> weightKg = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatsCompanion.insert(
@@ -1482,6 +2370,7 @@ class $$CatsTableTableManager
                 breed: breed,
                 dateOfBirth: dateOfBirth,
                 weightKg: weightKg,
+                photoPath: photoPath,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
