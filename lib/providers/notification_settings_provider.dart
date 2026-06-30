@@ -18,6 +18,7 @@ const Map<CatEventType, int> defaultThresholdHours = {
   CatEventType.hairball: 0,
   CatEventType.deworming: 0,
   CatEventType.fleaTreatment: 0,
+  CatEventType.medication: 0,
   CatEventType.feeding: 0,
   CatEventType.playtime: 0,
   CatEventType.note: 0,

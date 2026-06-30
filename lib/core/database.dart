@@ -11,6 +11,13 @@ class Cats extends Table {
   DateTimeColumn get dateOfBirth => dateTime().nullable()();
   RealColumn get weightKg => real().nullable()();
   TextColumn get photoPath => text().nullable()();
+  // JSON array of CatEventType.storageKey strings — the event types the user
+  // wants shown as quick-log buttons. null means "show all" (legacy/default).
+  TextColumn get quickLogTypesJson => text().nullable()();
+  // Set to true once the post-registration care-preferences screening is done,
+  // so the app only shows the screening screen once per new cat.
+  BoolColumn get screeningDone =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
 
@@ -79,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection('pawlog'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +115,10 @@ class AppDatabase extends _$AppDatabase {
           '(SELECT MAX(rowid) FROM notification_settings GROUP BY event_type)',
         );
         await _ensureNotificationSettingsEventTypeUnique();
+      }
+      if (from < 4) {
+        await m.addColumn(cats, cats.quickLogTypesJson);
+        await m.addColumn(cats, cats.screeningDone);
       }
     },
   );

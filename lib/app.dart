@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/main_shell.dart';
+import 'features/cats/cat_care_screening_screen.dart';
 import 'features/cats/cat_profile_setup_screen.dart';
 import 'providers/cats_provider.dart';
 
@@ -31,7 +32,12 @@ class _Root extends ConsumerWidget {
     return catsAsync.when(
       data: (cats) {
         if (cats.isEmpty) return const CatProfileSetupScreen();
-        return MainShell(cat: cats.first);
+        final cat = cats.first;
+        // Show the care-preferences screening once per new cat until complete.
+        if (!cat.screeningDone) {
+          return CatCareScreeningScreen(catId: cat.id, catName: cat.name);
+        }
+        return MainShell(cat: cat);
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),

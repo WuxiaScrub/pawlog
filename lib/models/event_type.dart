@@ -8,6 +8,7 @@ enum CatEventType {
   hairball,
   deworming,
   fleaTreatment,
+  medication,
   feeding,
   playtime,
   note,
@@ -30,6 +31,8 @@ extension CatEventTypeX on CatEventType {
         return 'deworming';
       case CatEventType.fleaTreatment:
         return 'flea_treatment';
+      case CatEventType.medication:
+        return 'medication';
       case CatEventType.feeding:
         return 'feeding';
       case CatEventType.playtime:
@@ -55,6 +58,8 @@ extension CatEventTypeX on CatEventType {
         return 'Deworming';
       case CatEventType.fleaTreatment:
         return 'Flea/Tick Treatment';
+      case CatEventType.medication:
+        return 'Medication';
       case CatEventType.feeding:
         return 'Feeding';
       case CatEventType.playtime:
@@ -80,6 +85,8 @@ extension CatEventTypeX on CatEventType {
         return Icons.medication;
       case CatEventType.fleaTreatment:
         return Icons.bug_report;
+      case CatEventType.medication:
+        return Icons.vaccines;
       case CatEventType.feeding:
         return Icons.restaurant;
       case CatEventType.playtime:
