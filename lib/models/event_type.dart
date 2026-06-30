@@ -89,6 +89,20 @@ extension CatEventTypeX on CatEventType {
     }
   }
 
+  /// Whether this event type has a cadence the owner needs to keep up
+  /// with, and so can sensibly be reminded about. Vomiting and hairballs
+  /// are observations, not chores — there's no sane "alert if not logged
+  /// in X hours" threshold for them, so they're excluded from Settings.
+  bool get isSchedulable {
+    switch (this) {
+      case CatEventType.vomit:
+      case CatEventType.hairball:
+        return false;
+      default:
+        return true;
+    }
+  }
+
   static CatEventType fromStorageKey(String key) {
     return CatEventType.values.firstWhere(
       (e) => e.storageKey == key,
