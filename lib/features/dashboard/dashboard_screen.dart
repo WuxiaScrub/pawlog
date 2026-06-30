@@ -81,6 +81,7 @@ class _LatenessStat {
   final int lateCount;
   final int totalIntervals;
 
+  bool get hasData => totalIntervals > 0;
   double get lateRate => totalIntervals == 0 ? 0 : lateCount / totalIntervals;
 }
 
@@ -113,9 +114,11 @@ class _LatenessRanking extends StatelessWidget {
       if (setting == null || !setting.enabled || setting.thresholdHours <= 0) {
         continue;
       }
-      final timestamps = timestampsByType[type];
-      if (timestamps == null || timestamps.isEmpty) continue;
-      timestamps.sort();
+      // Every enabled, thresholded chore shows up here — even ones with
+      // no logged history yet — so the ranking reflects everything the
+      // owner is being reminded about, not just whatever they've logged.
+      final timestamps = (timestampsByType[type] ?? const <DateTime>[])
+        ..sort();
 
       var lateCount = 0;
       var total = 0;
@@ -125,11 +128,13 @@ class _LatenessRanking extends StatelessWidget {
             timestamps[i].difference(timestamps[i - 1]).inHours;
         if (gapHours > setting.thresholdHours) lateCount++;
       }
-      // The open interval since the most recent log counts too — that's
-      // what "currently overdue" looks like in this history.
-      total++;
-      if (now.difference(timestamps.last).inHours > setting.thresholdHours) {
-        lateCount++;
+      if (timestamps.isNotEmpty) {
+        // The open interval since the most recent log counts too — that's
+        // what "currently overdue" looks like in this history.
+        total++;
+        if (now.difference(timestamps.last).inHours > setting.thresholdHours) {
+          lateCount++;
+        }
       }
 
       stats.add(_LatenessStat(
@@ -139,7 +144,10 @@ class _LatenessRanking extends StatelessWidget {
       ));
     }
 
-    stats.sort((a, b) => b.lateRate.compareTo(a.lateRate));
+    stats.sort((a, b) {
+      if (a.hasData != b.hasData) return a.hasData ? -1 : 1;
+      return b.lateRate.compareTo(a.lateRate);
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,6 +181,33 @@ class _LatenessRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!stat.hasData) {
+      final mutedStyle = Theme.of(context)
+          .textTheme
+          .bodyMedium
+          ?.copyWith(color: Theme.of(context).disabledColor);
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Row(
+          children: [
+            Icon(
+              stat.eventType.icon,
+              size: 16,
+              color: Theme.of(context).disabledColor,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(stat.eventType.label, style: mutedStyle),
+            ),
+            Text(
+              'No logs yet',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      );
+    }
+
     final rate = stat.lateRate.clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
