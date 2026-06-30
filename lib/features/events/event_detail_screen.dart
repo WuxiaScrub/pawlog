@@ -8,6 +8,7 @@ import '../../core/database.dart';
 import '../../core/local_photo.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
+import 'log_event_sheet.dart';
 
 class EventDetailScreen extends ConsumerWidget {
   const EventDetailScreen({super.key, required this.event});
@@ -16,9 +17,24 @@ class EventDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final type = CatEventTypeX.fromStorageKey(event.eventType);
-    final metadata = event.metadataJson != null
-        ? jsonDecode(event.metadataJson!) as Map<String, dynamic>
+    // Re-read the event from the live stream so edits made via the sheet
+    // (which pops back to this screen rather than replacing it) show up
+    // immediately, falling back to the originally-passed snapshot until the
+    // stream has emitted.
+    final liveEvents = ref.watch(eventsStreamProvider(event.catId)).value;
+    var current = event;
+    if (liveEvents != null) {
+      for (final e in liveEvents) {
+        if (e.id == event.id) {
+          current = e;
+          break;
+        }
+      }
+    }
+
+    final type = CatEventTypeX.fromStorageKey(current.eventType);
+    final metadata = current.metadataJson != null
+        ? jsonDecode(current.metadataJson!) as Map<String, dynamic>
         : <String, dynamic>{};
     final photoPath = metadata.remove('photo_path') as String?;
     final photo = resolveLocalPhoto(photoPath);
@@ -28,9 +44,18 @@ class EventDetailScreen extends ConsumerWidget {
         title: Text(type.label),
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => showLogEventSheet(
+              context,
+              catId: current.catId,
+              eventType: type,
+              existingEvent: current,
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () async {
-              await ref.read(eventsRepositoryProvider).deleteEvent(event.id);
+              await ref.read(eventsRepositoryProvider).deleteEvent(current.id);
               if (context.mounted) Navigator.of(context).pop();
             },
           ),
@@ -43,7 +68,7 @@ class EventDetailScreen extends ConsumerWidget {
             leading: Icon(type.icon),
             title: Text(type.label),
             subtitle: Text(
-              DateFormat.yMMMd().add_jm().format(event.loggedAt),
+              DateFormat.yMMMd().add_jm().format(current.loggedAt),
             ),
           ),
           if (photo != null) ...[
@@ -56,13 +81,13 @@ class EventDetailScreen extends ConsumerWidget {
               ),
             ),
           ],
-          if (event.notes != null && event.notes!.isNotEmpty) ...[
+          if (current.notes != null && current.notes!.isNotEmpty) ...[
             const Divider(),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-            Text(event.notes!),
+            Text(current.notes!),
           ],
           if (metadata.isNotEmpty) ...[
             const Divider(),
