@@ -29,6 +29,7 @@ class LogEventSheet extends ConsumerStatefulWidget {
 class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   final _notesController = TextEditingController();
   final _productController = TextEditingController();
+  final _durationController = TextEditingController();
   bool _hairballPresent = false;
   bool _afterEating = false;
   bool _unusualColorOrOdor = false;
@@ -39,6 +40,7 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   void dispose() {
     _notesController.dispose();
     _productController.dispose();
+    _durationController.dispose();
     super.dispose();
   }
 
@@ -57,6 +59,10 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
       case CatEventType.fleaTreatment:
         metadata['product_name'] = _productController.text.trim();
         metadata['first_time'] = _firstTime;
+        break;
+      case CatEventType.playtime:
+        final minutes = int.tryParse(_durationController.text.trim());
+        if (minutes != null) metadata['duration_minutes'] = minutes;
         break;
       default:
         break;
@@ -140,6 +146,16 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
                 value: _firstTime,
                 onChanged: (v) => setState(() => _firstTime = v),
               ),
+            ],
+            if (widget.eventType == CatEventType.playtime) ...[
+              TextField(
+                controller: _durationController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Duration (minutes, optional)',
+                ),
+              ),
+              const SizedBox(height: 8),
             ],
             TextField(
               controller: _notesController,

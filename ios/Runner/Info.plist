@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>PawLog uses the camera to take a profile photo for your cat.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PawLog uses your photo library to choose a profile photo for your cat.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

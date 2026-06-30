@@ -31,6 +31,7 @@ class CatsRepository {
     String? breed,
     DateTime? dateOfBirth,
     double? weightKg,
+    String? photoPath,
   }) {
     return _db.into(_db.cats).insert(
           CatsCompanion.insert(
@@ -39,6 +40,7 @@ class CatsRepository {
             breed: Value(breed),
             dateOfBirth: Value(dateOfBirth),
             weightKg: Value(weightKg),
+            photoPath: Value(photoPath),
           ),
         );
   }
