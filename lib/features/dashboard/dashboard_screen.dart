@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
+import '../../providers/notification_settings_provider.dart';
 import '../../providers/overdue_provider.dart';
 
-const _heatmapDays = 30;
 const _trendWeeks = 4;
 final _vomitColor = Colors.deepOrange;
 final _hairballColor = Colors.purple;
@@ -22,6 +22,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final events = ref.watch(eventsStreamProvider(cat.id)).value ?? [];
     final overdue = ref.watch(overdueItemsProvider(cat.id));
+    final settings = ref.watch(effectiveSettingsProvider);
     final now = DateTime.now();
 
     return Scaffold(
@@ -51,7 +52,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 16),
-          _ActivityHeatmap(events: events, now: now),
+          _LatenessRanking(events: events, settings: settings, now: now),
           const SizedBox(height: 28),
           Text('Symptom trend (vomiting & hairballs)',
               style: Theme.of(context).textTheme.titleMedium),
@@ -69,116 +70,151 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _ActivityHeatmap extends StatefulWidget {
-  const _ActivityHeatmap({required this.events, required this.now});
+class _LatenessStat {
+  const _LatenessStat({
+    required this.eventType,
+    required this.lateCount,
+    required this.totalIntervals,
+  });
+
+  final CatEventType eventType;
+  final int lateCount;
+  final int totalIntervals;
+
+  double get lateRate => totalIntervals == 0 ? 0 : lateCount / totalIntervals;
+}
+
+/// Ranks schedulable event types by how often they were logged later than
+/// their reminder threshold — i.e. what the owner most tends to fall behind
+/// on (litter, water, etc.), rather than raw activity volume.
+class _LatenessRanking extends StatelessWidget {
+  const _LatenessRanking({
+    required this.events,
+    required this.settings,
+    required this.now,
+  });
 
   final List<Event> events;
+  final Map<CatEventType, EffectiveSetting> settings;
   final DateTime now;
 
   @override
-  State<_ActivityHeatmap> createState() => _ActivityHeatmapState();
-}
-
-class _ActivityHeatmapState extends State<_ActivityHeatmap> {
-  CatEventType? _filter;
-
-  @override
   Widget build(BuildContext context) {
-    final today =
-        DateTime(widget.now.year, widget.now.month, widget.now.day);
-    final dayCounts = <DateTime, int>{
-      for (var i = 0; i < _heatmapDays; i++)
-        today.subtract(Duration(days: _heatmapDays - 1 - i)): 0,
-    };
-    for (final event in widget.events) {
-      if (_filter != null &&
-          CatEventTypeX.fromStorageKey(event.eventType) != _filter) {
-        continue;
-      }
-      final day = DateTime(
-        event.loggedAt.year,
-        event.loggedAt.month,
-        event.loggedAt.day,
-      );
-      if (dayCounts.containsKey(day)) {
-        dayCounts[day] = dayCounts[day]! + 1;
-      }
+    final timestampsByType = <CatEventType, List<DateTime>>{};
+    for (final event in events) {
+      final type = CatEventTypeX.fromStorageKey(event.eventType);
+      (timestampsByType[type] ??= []).add(event.loggedAt);
     }
 
-    final maxCount =
-        dayCounts.values.fold(0, (a, b) => b > a ? b : a).clamp(1, 1 << 30);
-    final primary = Theme.of(context).colorScheme.primary;
-    final days = dayCounts.entries.toList();
+    final stats = <_LatenessStat>[];
+    for (final type in CatEventType.values) {
+      if (!type.isSchedulable) continue;
+      final setting = settings[type];
+      if (setting == null || !setting.enabled || setting.thresholdHours <= 0) {
+        continue;
+      }
+      final timestamps = timestampsByType[type];
+      if (timestamps == null || timestamps.isEmpty) continue;
+      timestamps.sort();
+
+      var lateCount = 0;
+      var total = 0;
+      for (var i = 1; i < timestamps.length; i++) {
+        total++;
+        final gapHours =
+            timestamps[i].difference(timestamps[i - 1]).inHours;
+        if (gapHours > setting.thresholdHours) lateCount++;
+      }
+      // The open interval since the most recent log counts too — that's
+      // what "currently overdue" looks like in this history.
+      total++;
+      if (now.difference(timestamps.last).inHours > setting.thresholdHours) {
+        lateCount++;
+      }
+
+      stats.add(_LatenessStat(
+        eventType: type,
+        lateCount: lateCount,
+        totalIntervals: total,
+      ));
+    }
+
+    stats.sort((a, b) => b.lateRate.compareTo(a.lateRate));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Activity (last $_heatmapDays days)',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            PopupMenuButton<CatEventType?>(
-              tooltip: 'Filter by event type',
-              icon: Icon(
-                _filter == null ? Icons.filter_list : Icons.filter_alt,
-              ),
-              onSelected: (value) => setState(() => _filter = value),
-              itemBuilder: (_) => [
-                const PopupMenuItem(value: null, child: Text('All events')),
-                for (final type in CatEventType.values)
-                  PopupMenuItem(value: type, child: Text(type.label)),
-              ],
-            ),
-          ],
-        ),
-        if (_filter != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(
-              'Showing: ${_filter!.label}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        const SizedBox(height: 8),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: days.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-          ),
-          itemBuilder: (context, index) {
-            final entry = days[index];
-            final intensity = entry.value == 0 ? 0.0 : entry.value / maxCount;
-            return Tooltip(
-              message:
-                  '${DateFormat.MMMd().format(entry.key)}: ${entry.value} event${entry.value == 1 ? '' : 's'}',
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: entry.value == 0
-                        ? Theme.of(context).colorScheme.surfaceContainerHighest
-                        : primary.withValues(alpha: 0.15 + 0.85 * intensity),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
         Text(
-          'Darker squares = more care events logged that day.',
+          'Where you fall behind',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'How often each chore was logged later than its reminder threshold.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        const SizedBox(height: 12),
+        if (stats.isEmpty)
+          Text(
+            'Not enough history yet — keep logging to see what you tend to miss.',
+            style: Theme.of(context).textTheme.bodySmall,
+          )
+        else
+          for (final stat in stats) _LatenessRow(stat: stat),
       ],
+    );
+  }
+}
+
+class _LatenessRow extends StatelessWidget {
+  const _LatenessRow({required this.stat});
+
+  final _LatenessStat stat;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = stat.lateRate.clamp(0.0, 1.0);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(stat.eventType.icon, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  stat.eventType.label,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              Text(
+                '${(rate * 100).round()}% late',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: rate,
+              minHeight: 8,
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: rate >= 0.5
+                  ? Colors.redAccent
+                  : Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Late ${stat.lateCount} of ${stat.totalIntervals} time${stat.totalIntervals == 1 ? '' : 's'}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -225,6 +261,7 @@ class _SymptomTrendChart extends StatelessWidget {
 
     final maxCount = [...vomitCounts, ...hairballCounts, 1]
         .reduce((a, b) => a > b ? a : b);
+    final maxY = (maxCount + 1).toDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,22 +271,40 @@ class _SymptomTrendChart extends StatelessWidget {
           child: LineChart(
             LineChartData(
               minY: 0,
-              maxY: (maxCount + 1).toDouble(),
+              maxY: maxY,
               lineBarsData: [
                 _trendLine(vomitCounts, _vomitColor),
                 _trendLine(hairballCounts, _hairballColor),
               ],
               titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 28),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      // Integer-only labels: 0.5/1.5 ticks would be
+                      // meaningless for an event count.
+                      if (value != value.roundToDouble()) {
+                        return const SizedBox.shrink();
+                      }
+                      return Text(
+                        value.toInt().toString(),
+                        style: const TextStyle(fontSize: 10),
+                      );
+                    },
+                  ),
                 ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 32,
+                    interval: 1,
                     getTitlesWidget: (value, meta) {
-                      final index = value.toInt();
-                      if (index < 0 || index >= bucketStarts.length) {
+                      final index = value.round();
+                      if (index < 0 ||
+                          index >= bucketStarts.length ||
+                          value != index.toDouble()) {
                         return const SizedBox.shrink();
                       }
                       return Padding(
@@ -267,7 +322,7 @@ class _SymptomTrendChart extends StatelessWidget {
                 rightTitles:
                     const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
-              gridData: const FlGridData(drawVerticalLine: false),
+              gridData: const FlGridData(drawVerticalLine: false, horizontalInterval: 1),
               borderData: FlBorderData(show: false),
             ),
           ),

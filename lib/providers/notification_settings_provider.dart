@@ -72,28 +72,35 @@ class NotificationSettingsRepository {
     required CatEventType eventType,
     required int thresholdHours,
     required bool enabled,
-  }) async {
-    final existing = await (_db.select(_db.notificationSettings)
-          ..where((t) => t.eventType.equals(eventType.storageKey)))
-        .getSingleOrNull();
+  }) {
+    // Runs as a single transaction so two near-simultaneous edits (e.g.
+    // toggling the enable switch and saving the threshold dialog right
+    // after) can't both see "no existing row" and insert duplicate rows
+    // for the same event type — only one upsert can read-then-write this
+    // event type at a time.
+    return _db.transaction(() async {
+      final existing = await (_db.select(_db.notificationSettings)
+            ..where((t) => t.eventType.equals(eventType.storageKey)))
+          .getSingleOrNull();
 
-    if (existing == null) {
-      await _db.into(_db.notificationSettings).insert(
-            NotificationSettingsCompanion.insert(
-              id: _uuid.v4(),
-              eventType: eventType.storageKey,
-              thresholdHours: thresholdHours,
-              enabled: Value(enabled),
-            ),
-          );
-    } else {
-      await _db.update(_db.notificationSettings).replace(
-            existing.copyWith(
-              thresholdHours: thresholdHours,
-              enabled: enabled,
-            ),
-          );
-    }
+      if (existing == null) {
+        await _db.into(_db.notificationSettings).insert(
+              NotificationSettingsCompanion.insert(
+                id: _uuid.v4(),
+                eventType: eventType.storageKey,
+                thresholdHours: thresholdHours,
+                enabled: Value(enabled),
+              ),
+            );
+      } else {
+        await _db.update(_db.notificationSettings).replace(
+              existing.copyWith(
+                thresholdHours: thresholdHours,
+                enabled: enabled,
+              ),
+            );
+      }
+    });
   }
 }
 
