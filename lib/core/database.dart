@@ -93,5 +93,15 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(feedingSlots);
       }
     },
+    beforeOpen: (details) async {
+      // A past race in NotificationSettingsRepository.upsert could insert
+      // more than one row for the same event type before a unique
+      // constraint existed. Keep only the most recently written row per
+      // event type so a stale threshold can't keep resurfacing.
+      await customStatement(
+        'DELETE FROM notification_settings WHERE rowid NOT IN '
+        '(SELECT MAX(rowid) FROM notification_settings GROUP BY event_type)',
+      );
+    },
   );
 }
