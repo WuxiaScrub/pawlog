@@ -76,7 +76,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _ThresholdTile extends StatefulWidget {
+class _ThresholdTile extends StatelessWidget {
   const _ThresholdTile({
     required this.eventType,
     required this.setting,
@@ -87,39 +87,29 @@ class _ThresholdTile extends StatefulWidget {
   final EffectiveSetting setting;
   final void Function(bool enabled, int thresholdHours) onChanged;
 
-  @override
-  State<_ThresholdTile> createState() => _ThresholdTileState();
-}
-
-class _ThresholdTileState extends State<_ThresholdTile> {
-  late int _hours;
-
-  @override
-  void initState() {
-    super.initState();
-    _hours = widget.setting.thresholdHours == 0
-        ? 24
-        : widget.setting.thresholdHours;
-  }
+  // The tile always renders straight from `setting` — the persisted source
+  // of truth — rather than caching a local copy. A local copy would only
+  // be seeded once (via initState) and could go stale relative to the
+  // provider the moment a save round-trips through the database.
+  int get _hours => setting.thresholdHours == 0 ? 24 : setting.thresholdHours;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(widget.eventType.icon),
-      title: Text(widget.eventType.label),
-      subtitle: widget.setting.enabled
+      leading: Icon(eventType.icon),
+      title: Text(eventType.label),
+      subtitle: setting.enabled
           ? Text('Alert if not logged in $_hours h')
           : const Text('Reminder off'),
       trailing: Switch(
-        value: widget.setting.enabled,
-        onChanged: (value) => widget.onChanged(value, _hours),
+        value: setting.enabled,
+        onChanged: (value) => onChanged(value, _hours),
       ),
-      onTap: widget.setting.enabled
+      onTap: setting.enabled
           ? () async {
               final hours = await _promptHours(context, _hours);
               if (hours != null) {
-                setState(() => _hours = hours);
-                widget.onChanged(true, hours);
+                onChanged(true, hours);
               }
             }
           : null,
