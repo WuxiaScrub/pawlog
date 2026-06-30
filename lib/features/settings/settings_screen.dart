@@ -51,7 +51,7 @@ class SettingsScreen extends ConsumerWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          for (final type in CatEventType.values)
+          for (final type in CatEventType.values.where((t) => t.isSchedulable))
             _ThresholdTile(
               eventType: type,
               setting: settings[type]!,
