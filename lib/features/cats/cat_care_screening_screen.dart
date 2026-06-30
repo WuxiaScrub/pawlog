@@ -104,8 +104,8 @@ class _CatCareScreeningScreenState
           catId: widget.catId,
           enabledTypes: enabledTypes,
         );
-
-    if (mounted) Navigator.of(context).pop();
+    // No Navigator.pop() — this screen is rendered directly by _Root, which
+    // will replace it with MainShell the moment screeningDone flips to true.
   }
 
   @override
