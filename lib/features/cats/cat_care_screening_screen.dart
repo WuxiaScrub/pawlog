@@ -38,8 +38,13 @@ class _ScreeningQuestion {
 
 class _CatCareScreeningScreenState
     extends ConsumerState<CatCareScreeningScreen> {
-  // Always-visible types — observations, not chores, so they can't be toggled off here.
+  // Always-visible types — assumed for virtually all cats, or are observations
+  // that can't be scheduled. Users can still remove them via the customize
+  // button on the home screen if needed.
   static const _alwaysOn = {
+    CatEventType.litterScoop,
+    CatEventType.litterChange,
+    CatEventType.waterChange,
     CatEventType.vomit,
     CatEventType.hairball,
     CatEventType.note,
@@ -54,20 +59,9 @@ class _CatCareScreeningScreenState
     super.initState();
     _questions = [
       _ScreeningQuestion(
-        question: 'Does ${widget.catName} use a litter box?',
-        subtitle: 'Enables litter scooping and full litter change tracking.',
-        types: [CatEventType.litterScoop, CatEventType.litterChange],
-        defaultEnabled: true,
-      ),
-      _ScreeningQuestion(
-        question: 'Do you want to track water changes?',
-        subtitle: 'Log when you refresh the water bowl.',
-        types: [CatEventType.waterChange],
-        defaultEnabled: true,
-      ),
-      _ScreeningQuestion(
-        question: 'Does ${widget.catName} have scheduled mealtimes?',
-        subtitle: 'Sets up a feeding schedule with time slots.',
+        question: 'Does ${widget.catName} eat on a set schedule?',
+        subtitle:
+            'Set up named time slots (e.g. Morning, Evening) so you can mark each meal done. Leave off for free-feeding cats.',
         types: [CatEventType.feeding],
         defaultEnabled: false,
       ),
@@ -125,12 +119,12 @@ class _CatCareScreeningScreenState
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Tell us a little about ${widget.catName}\'s care routine so we can set up the right tracking events for you. You can always change these later in Settings.',
+            'A few quick questions to tailor ${widget.catName}\'s tracking. Litter, water, and health observations are already set up — this is just for the extras.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Any question can be skipped — just leave it off.',
+            'Skip anything that doesn\'t apply — you can always adjust later.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
