@@ -68,6 +68,32 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _quickLogTypesJsonMeta =
+      const VerificationMeta('quickLogTypesJson');
+  @override
+  late final GeneratedColumn<String> quickLogTypesJson =
+      GeneratedColumn<String>(
+    'quick_log_types_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _screeningDoneMeta = const VerificationMeta(
+    'screeningDone',
+  );
+  @override
+  late final GeneratedColumn<bool> screeningDone = GeneratedColumn<bool>(
+    'screening_done',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("screening_done" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -88,6 +114,8 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
     dateOfBirth,
     weightKg,
     photoPath,
+    quickLogTypesJson,
+    screeningDone,
     createdAt,
   ];
   @override
@@ -142,6 +170,24 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
         photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
       );
     }
+    if (data.containsKey('quick_log_types_json')) {
+      context.handle(
+        _quickLogTypesJsonMeta,
+        quickLogTypesJson.isAcceptableOrUnknown(
+          data['quick_log_types_json']!,
+          _quickLogTypesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('screening_done')) {
+      context.handle(
+        _screeningDoneMeta,
+        screeningDone.isAcceptableOrUnknown(
+          data['screening_done']!,
+          _screeningDoneMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -181,6 +227,14 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
         DriftSqlType.string,
         data['${effectivePrefix}photo_path'],
       ),
+      quickLogTypesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quick_log_types_json'],
+      ),
+      screeningDone: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}screening_done'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -201,6 +255,8 @@ class Cat extends DataClass implements Insertable<Cat> {
   final DateTime? dateOfBirth;
   final double? weightKg;
   final String? photoPath;
+  final String? quickLogTypesJson;
+  final bool screeningDone;
   final DateTime createdAt;
   const Cat({
     required this.id,
@@ -209,6 +265,8 @@ class Cat extends DataClass implements Insertable<Cat> {
     this.dateOfBirth,
     this.weightKg,
     this.photoPath,
+    this.quickLogTypesJson,
+    required this.screeningDone,
     required this.createdAt,
   });
   @override
@@ -228,6 +286,10 @@ class Cat extends DataClass implements Insertable<Cat> {
     if (!nullToAbsent || photoPath != null) {
       map['photo_path'] = Variable<String>(photoPath);
     }
+    if (!nullToAbsent || quickLogTypesJson != null) {
+      map['quick_log_types_json'] = Variable<String>(quickLogTypesJson);
+    }
+    map['screening_done'] = Variable<bool>(screeningDone);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -248,6 +310,10 @@ class Cat extends DataClass implements Insertable<Cat> {
       photoPath: photoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(photoPath),
+      quickLogTypesJson: quickLogTypesJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quickLogTypesJson),
+      screeningDone: Value(screeningDone),
       createdAt: Value(createdAt),
     );
   }
@@ -264,6 +330,9 @@ class Cat extends DataClass implements Insertable<Cat> {
       dateOfBirth: serializer.fromJson<DateTime?>(json['dateOfBirth']),
       weightKg: serializer.fromJson<double?>(json['weightKg']),
       photoPath: serializer.fromJson<String?>(json['photoPath']),
+      quickLogTypesJson:
+          serializer.fromJson<String?>(json['quickLogTypesJson']),
+      screeningDone: serializer.fromJson<bool>(json['screeningDone']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -277,6 +346,8 @@ class Cat extends DataClass implements Insertable<Cat> {
       'dateOfBirth': serializer.toJson<DateTime?>(dateOfBirth),
       'weightKg': serializer.toJson<double?>(weightKg),
       'photoPath': serializer.toJson<String?>(photoPath),
+      'quickLogTypesJson': serializer.toJson<String?>(quickLogTypesJson),
+      'screeningDone': serializer.toJson<bool>(screeningDone),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -288,6 +359,8 @@ class Cat extends DataClass implements Insertable<Cat> {
     Value<DateTime?> dateOfBirth = const Value.absent(),
     Value<double?> weightKg = const Value.absent(),
     Value<String?> photoPath = const Value.absent(),
+    Value<String?> quickLogTypesJson = const Value.absent(),
+    bool? screeningDone,
     DateTime? createdAt,
   }) => Cat(
     id: id ?? this.id,
@@ -296,6 +369,10 @@ class Cat extends DataClass implements Insertable<Cat> {
     dateOfBirth: dateOfBirth.present ? dateOfBirth.value : this.dateOfBirth,
     weightKg: weightKg.present ? weightKg.value : this.weightKg,
     photoPath: photoPath.present ? photoPath.value : this.photoPath,
+    quickLogTypesJson: quickLogTypesJson.present
+        ? quickLogTypesJson.value
+        : this.quickLogTypesJson,
+    screeningDone: screeningDone ?? this.screeningDone,
     createdAt: createdAt ?? this.createdAt,
   );
   Cat copyWithCompanion(CatsCompanion data) {
@@ -308,6 +385,12 @@ class Cat extends DataClass implements Insertable<Cat> {
           : this.dateOfBirth,
       weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
       photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
+      quickLogTypesJson: data.quickLogTypesJson.present
+          ? data.quickLogTypesJson.value
+          : this.quickLogTypesJson,
+      screeningDone: data.screeningDone.present
+          ? data.screeningDone.value
+          : this.screeningDone,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -321,14 +404,25 @@ class Cat extends DataClass implements Insertable<Cat> {
           ..write('dateOfBirth: $dateOfBirth, ')
           ..write('weightKg: $weightKg, ')
           ..write('photoPath: $photoPath, ')
+          ..write('quickLogTypesJson: $quickLogTypesJson, ')
+          ..write('screeningDone: $screeningDone, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, breed, dateOfBirth, weightKg, photoPath, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    breed,
+    dateOfBirth,
+    weightKg,
+    photoPath,
+    quickLogTypesJson,
+    screeningDone,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -339,6 +433,8 @@ class Cat extends DataClass implements Insertable<Cat> {
           other.dateOfBirth == this.dateOfBirth &&
           other.weightKg == this.weightKg &&
           other.photoPath == this.photoPath &&
+          other.quickLogTypesJson == this.quickLogTypesJson &&
+          other.screeningDone == this.screeningDone &&
           other.createdAt == this.createdAt);
 }
 
@@ -349,6 +445,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
   final Value<DateTime?> dateOfBirth;
   final Value<double?> weightKg;
   final Value<String?> photoPath;
+  final Value<String?> quickLogTypesJson;
+  final Value<bool> screeningDone;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const CatsCompanion({
@@ -358,6 +456,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     this.dateOfBirth = const Value.absent(),
     this.weightKg = const Value.absent(),
     this.photoPath = const Value.absent(),
+    this.quickLogTypesJson = const Value.absent(),
+    this.screeningDone = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -368,6 +468,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     this.dateOfBirth = const Value.absent(),
     this.weightKg = const Value.absent(),
     this.photoPath = const Value.absent(),
+    this.quickLogTypesJson = const Value.absent(),
+    this.screeningDone = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -379,6 +481,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     Expression<DateTime>? dateOfBirth,
     Expression<double>? weightKg,
     Expression<String>? photoPath,
+    Expression<String>? quickLogTypesJson,
+    Expression<bool>? screeningDone,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -389,6 +493,9 @@ class CatsCompanion extends UpdateCompanion<Cat> {
       if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
       if (weightKg != null) 'weight_kg': weightKg,
       if (photoPath != null) 'photo_path': photoPath,
+      if (quickLogTypesJson != null)
+        'quick_log_types_json': quickLogTypesJson,
+      if (screeningDone != null) 'screening_done': screeningDone,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -401,6 +508,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     Value<DateTime?>? dateOfBirth,
     Value<double?>? weightKg,
     Value<String?>? photoPath,
+    Value<String?>? quickLogTypesJson,
+    Value<bool>? screeningDone,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -411,6 +520,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       weightKg: weightKg ?? this.weightKg,
       photoPath: photoPath ?? this.photoPath,
+      quickLogTypesJson: quickLogTypesJson ?? this.quickLogTypesJson,
+      screeningDone: screeningDone ?? this.screeningDone,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -437,6 +548,12 @@ class CatsCompanion extends UpdateCompanion<Cat> {
     if (photoPath.present) {
       map['photo_path'] = Variable<String>(photoPath.value);
     }
+    if (quickLogTypesJson.present) {
+      map['quick_log_types_json'] = Variable<String>(quickLogTypesJson.value);
+    }
+    if (screeningDone.present) {
+      map['screening_done'] = Variable<bool>(screeningDone.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -455,6 +572,8 @@ class CatsCompanion extends UpdateCompanion<Cat> {
           ..write('dateOfBirth: $dateOfBirth, ')
           ..write('weightKg: $weightKg, ')
           ..write('photoPath: $photoPath, ')
+          ..write('quickLogTypesJson: $quickLogTypesJson, ')
+          ..write('screeningDone: $screeningDone, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))

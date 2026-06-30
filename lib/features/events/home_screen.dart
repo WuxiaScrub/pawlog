@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/database.dart';
 import '../../models/event_type.dart';
+import '../../providers/cats_provider.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/feeding_provider.dart';
 import '../cats/cat_avatar.dart';
@@ -48,28 +49,22 @@ class HomeScreen extends ConsumerWidget {
             _TodaysFeedingsCard(catId: cat.id),
             const SizedBox(height: 24),
           ],
-          Text('Log an event', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 0.9,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              for (final type in CatEventType.values)
-                if (!(hasFeedingSchedule && type == CatEventType.feeding))
-                  _QuickLogButton(
-                    eventType: type,
-                    onTap: () => showLogEventSheet(
-                      context,
-                      catId: cat.id,
-                      eventType: type,
-                    ),
-                  ),
+              Text(
+                'Log an event',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              IconButton(
+                icon: const Icon(Icons.tune),
+                tooltip: 'Customize buttons',
+                onPressed: () => _showCustomizeSheet(context, ref, cat),
+              ),
             ],
           ),
+          const SizedBox(height: 8),
+          _QuickLogGrid(cat: cat, hasFeedingSchedule: hasFeedingSchedule),
           const SizedBox(height: 24),
           Text('Recent activity',
               style: Theme.of(context).textTheme.titleMedium),
@@ -104,6 +99,157 @@ class HomeScreen extends ConsumerWidget {
             error: (e, _) => Text('Error loading events: $e'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+void _showCustomizeSheet(BuildContext context, WidgetRef ref, Cat cat) {
+  final current = decodeQuickLogTypes(cat.quickLogTypesJson) ??
+      CatEventType.values.toSet();
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetCtx) => _CustomizeSheet(cat: cat, current: current),
+  );
+}
+
+class _QuickLogGrid extends ConsumerWidget {
+  const _QuickLogGrid({required this.cat, required this.hasFeedingSchedule});
+
+  final Cat cat;
+  final bool hasFeedingSchedule;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Decode preferences; null means "all types" (legacy / no preference set).
+    final enabledTypes =
+        decodeQuickLogTypes(cat.quickLogTypesJson) ?? CatEventType.values.toSet();
+
+    final visibleTypes = CatEventType.values.where((t) {
+      if (hasFeedingSchedule && t == CatEventType.feeding) return false;
+      return enabledTypes.contains(t);
+    }).toList();
+
+    if (visibleTypes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'No event types enabled. Tap the tune icon to add some.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      );
+    }
+
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 0.9,
+      children: [
+        for (final type in visibleTypes)
+          _QuickLogButton(
+            eventType: type,
+            onTap: () =>
+                showLogEventSheet(context, catId: cat.id, eventType: type),
+          ),
+      ],
+    );
+  }
+}
+
+class _CustomizeSheet extends ConsumerStatefulWidget {
+  const _CustomizeSheet({required this.cat, required this.current});
+
+  final Cat cat;
+  final Set<CatEventType> current;
+
+  @override
+  ConsumerState<_CustomizeSheet> createState() => _CustomizeSheetState();
+}
+
+class _CustomizeSheetState extends ConsumerState<_CustomizeSheet> {
+  late final Set<CatEventType> _enabled;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = Set.from(widget.current);
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    await ref.read(catsRepositoryProvider).saveQuickLogPreferences(
+          catId: widget.cat.id,
+          enabledTypes: _enabled.toList(),
+        );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Customize quick-log buttons',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                          height: 14,
+                          width: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Choose which event types appear as buttons on the home screen.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final type in CatEventType.values)
+                    CheckboxListTile(
+                      value: _enabled.contains(type),
+                      onChanged: (val) => setState(() {
+                        if (val == true) {
+                          _enabled.add(type);
+                        } else {
+                          _enabled.remove(type);
+                        }
+                      }),
+                      secondary: Icon(type.icon),
+                      title: Text(type.label),
+                      dense: true,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

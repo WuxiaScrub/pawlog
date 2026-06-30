@@ -132,6 +132,8 @@ class _CatProfileSetupScreenState
         weightKg: weight,
         photoPath: _photoPath,
       );
+      // _Root will automatically navigate to CatCareScreeningScreen
+      // once the new cat (screeningDone = false) appears in the stream.
     } else {
       await repo.updateCat(
         widget.existingCat!.copyWith(
