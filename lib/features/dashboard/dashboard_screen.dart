@@ -62,7 +62,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 4),
                     for (final item in overdue)
                       Text(
-                        '${item.eventType.label}: ${item.lastLoggedAt == null ? 'never logged' : 'last logged ${_hoursAgo(item.lastLoggedAt!, now)}'}',
+                        '${item.eventType.label}: last logged ${_hoursAgo(item.lastLoggedAt, now)}',
                       ),
                   ],
                 ),

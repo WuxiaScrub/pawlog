@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../core/local_photo.dart';
+import '../../core/photo_storage.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 
@@ -14,6 +17,11 @@ Future<void> showLogEventSheet(
     isScrollControlled: true,
     builder: (_) => LogEventSheet(catId: catId, eventType: eventType),
   );
+}
+
+class _PhotoChoice {
+  _PhotoChoice(this.source);
+  final ImageSource? source;
 }
 
 class LogEventSheet extends ConsumerStatefulWidget {
@@ -35,6 +43,8 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   bool _unusualColorOrOdor = false;
   bool _firstTime = false;
   bool _saving = false;
+  String? _photoPath;
+  final _photoStorage = const PhotoStorage();
 
   @override
   void dispose() {
@@ -44,6 +54,56 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
     super.dispose();
   }
 
+  Future<void> _pickPhoto() async {
+    final choice = await showModalBottomSheet<_PhotoChoice>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.of(sheetContext)
+                  .pop(_PhotoChoice(ImageSource.camera)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.of(sheetContext)
+                  .pop(_PhotoChoice(ImageSource.gallery)),
+            ),
+            if (_photoPath != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remove photo'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_PhotoChoice(null)),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (choice == null) return;
+
+    if (choice.source == null) {
+      setState(() => _photoPath = null);
+      return;
+    }
+
+    try {
+      final saved = await _photoStorage.pickAndSave(source: choice.source!);
+      if (saved != null) setState(() => _photoPath = saved);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save photo: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     final metadata = <String, dynamic>{};
@@ -51,6 +111,7 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
       case CatEventType.vomit:
         metadata['hairball_present'] = _hairballPresent;
         metadata['after_eating'] = _afterEating;
+        if (_photoPath != null) metadata['photo_path'] = _photoPath;
         break;
       case CatEventType.litterChange:
         metadata['unusual_color_or_odor'] = _unusualColorOrOdor;
@@ -126,6 +187,9 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
                 value: _afterEating,
                 onChanged: (v) => setState(() => _afterEating = v),
               ),
+              const SizedBox(height: 8),
+              _PhotoPicker(photoPath: _photoPath, onTap: _pickPhoto),
+              const SizedBox(height: 8),
             ],
             if (widget.eventType == CatEventType.litterChange)
               SwitchListTile(
@@ -177,6 +241,58 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PhotoPicker extends StatelessWidget {
+  const _PhotoPicker({required this.photoPath, required this.onTap});
+
+  final String? photoPath;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = resolveLocalPhoto(photoPath);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 96,
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).colorScheme.outline),
+          borderRadius: BorderRadius.circular(8),
+          image: image != null
+              ? DecorationImage(image: image, fit: BoxFit.cover)
+              : null,
+        ),
+        child: image == null
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add_a_photo,
+                        color: Theme.of(context).colorScheme.outline),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Add a photo (optional)',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              )
+            : Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Colors.black54,
+                    child: Icon(Icons.edit, size: 14, color: Colors.white),
+                  ),
+                ),
+              ),
       ),
     );
   }

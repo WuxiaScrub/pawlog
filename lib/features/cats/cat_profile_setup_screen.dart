@@ -103,8 +103,16 @@ class _CatProfileSetupScreenState
       return;
     }
 
-    final saved = await _photoStorage.pickAndSave(source: result.source!);
-    if (saved != null) setState(() => _photoPath = saved);
+    try {
+      final saved = await _photoStorage.pickAndSave(source: result.source!);
+      if (saved != null) setState(() => _photoPath = saved);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save photo: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _save() async {
