@@ -51,9 +51,6 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 16),
-          Text('Activity (last $_heatmapDays days)',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
           _ActivityHeatmap(events: events, now: now),
           const SizedBox(height: 28),
           Text('Symptom trend (vomiting & hairballs)',
@@ -72,20 +69,32 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _ActivityHeatmap extends StatelessWidget {
+class _ActivityHeatmap extends StatefulWidget {
   const _ActivityHeatmap({required this.events, required this.now});
 
   final List<Event> events;
   final DateTime now;
 
   @override
+  State<_ActivityHeatmap> createState() => _ActivityHeatmapState();
+}
+
+class _ActivityHeatmapState extends State<_ActivityHeatmap> {
+  CatEventType? _filter;
+
+  @override
   Widget build(BuildContext context) {
-    final today = DateTime(now.year, now.month, now.day);
+    final today =
+        DateTime(widget.now.year, widget.now.month, widget.now.day);
     final dayCounts = <DateTime, int>{
       for (var i = 0; i < _heatmapDays; i++)
         today.subtract(Duration(days: _heatmapDays - 1 - i)): 0,
     };
-    for (final event in events) {
+    for (final event in widget.events) {
+      if (_filter != null &&
+          CatEventTypeX.fromStorageKey(event.eventType) != _filter) {
+        continue;
+      }
       final day = DateTime(
         event.loggedAt.year,
         event.loggedAt.month,
@@ -104,6 +113,37 @@ class _ActivityHeatmap extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Activity (last $_heatmapDays days)',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            PopupMenuButton<CatEventType?>(
+              tooltip: 'Filter by event type',
+              icon: Icon(
+                _filter == null ? Icons.filter_list : Icons.filter_alt,
+              ),
+              onSelected: (value) => setState(() => _filter = value),
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: null, child: Text('All events')),
+                for (final type in CatEventType.values)
+                  PopupMenuItem(value: type, child: Text(type.label)),
+              ],
+            ),
+          ],
+        ),
+        if (_filter != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Showing: ${_filter!.label}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        const SizedBox(height: 8),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
