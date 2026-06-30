@@ -43,6 +43,19 @@ class EventsRepository {
         );
   }
 
+  Future<void> updateEvent({
+    required String id,
+    String? notes,
+    Map<String, dynamic>? metadata,
+  }) {
+    return (_db.update(_db.events)..where((t) => t.id.equals(id))).write(
+          EventsCompanion(
+            notes: Value(notes),
+            metadataJson: Value(metadata != null ? jsonEncode(metadata) : null),
+          ),
+        );
+  }
+
   Future<void> deleteEvent(String id) {
     return (_db.delete(_db.events)..where((t) => t.id.equals(id))).go();
   }

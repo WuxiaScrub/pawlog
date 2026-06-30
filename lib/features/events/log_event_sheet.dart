@@ -1,21 +1,31 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/database.dart';
 import '../../core/local_photo.dart';
 import '../../core/photo_storage.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 
+/// Shows the log-event sheet. Pass [existingEvent] to edit an already-logged
+/// event in place instead of creating a new one.
 Future<void> showLogEventSheet(
   BuildContext context, {
   required String catId,
   required CatEventType eventType,
+  Event? existingEvent,
 }) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    builder: (_) => LogEventSheet(catId: catId, eventType: eventType),
+    builder: (_) => LogEventSheet(
+      catId: catId,
+      eventType: eventType,
+      existingEvent: existingEvent,
+    ),
   );
 }
 
@@ -25,10 +35,16 @@ class _PhotoChoice {
 }
 
 class LogEventSheet extends ConsumerStatefulWidget {
-  const LogEventSheet({super.key, required this.catId, required this.eventType});
+  const LogEventSheet({
+    super.key,
+    required this.catId,
+    required this.eventType,
+    this.existingEvent,
+  });
 
   final String catId;
   final CatEventType eventType;
+  final Event? existingEvent;
 
   @override
   ConsumerState<LogEventSheet> createState() => _LogEventSheetState();
@@ -45,6 +61,26 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   bool _saving = false;
   String? _photoPath;
   final _photoStorage = const PhotoStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existingEvent;
+    if (existing == null) return;
+
+    _notesController.text = existing.notes ?? '';
+    final metadata = existing.metadataJson != null
+        ? jsonDecode(existing.metadataJson!) as Map<String, dynamic>
+        : <String, dynamic>{};
+    _hairballPresent = metadata['hairball_present'] as bool? ?? false;
+    _afterEating = metadata['after_eating'] as bool? ?? false;
+    _unusualColorOrOdor = metadata['unusual_color_or_odor'] as bool? ?? false;
+    _firstTime = metadata['first_time'] as bool? ?? false;
+    _productController.text = metadata['product_name'] as String? ?? '';
+    final duration = metadata['duration_minutes'];
+    if (duration != null) _durationController.text = duration.toString();
+    _photoPath = metadata['photo_path'] as String?;
+  }
 
   @override
   void dispose() {
@@ -129,19 +165,36 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
         break;
     }
 
-    await ref.read(eventsRepositoryProvider).logEvent(
-          catId: widget.catId,
-          eventType: widget.eventType,
-          notes: _notesController.text.trim().isEmpty
-              ? null
-              : _notesController.text.trim(),
-          metadata: metadata.isEmpty ? null : metadata,
-        );
+    final notes = _notesController.text.trim().isEmpty
+        ? null
+        : _notesController.text.trim();
+    final repo = ref.read(eventsRepositoryProvider);
+    final existing = widget.existingEvent;
+    if (existing != null) {
+      await repo.updateEvent(
+        id: existing.id,
+        notes: notes,
+        metadata: metadata.isEmpty ? null : metadata,
+      );
+    } else {
+      await repo.logEvent(
+        catId: widget.catId,
+        eventType: widget.eventType,
+        notes: notes,
+        metadata: metadata.isEmpty ? null : metadata,
+      );
+    }
 
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logged: ${widget.eventType.label}')),
+        SnackBar(
+          content: Text(
+            existing != null
+                ? 'Updated: ${widget.eventType.label}'
+                : 'Logged: ${widget.eventType.label}',
+          ),
+        ),
       );
     }
   }
@@ -168,7 +221,9 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
                 Icon(widget.eventType.icon),
                 const SizedBox(width: 8),
                 Text(
-                  widget.eventType.label,
+                  widget.existingEvent != null
+                      ? 'Edit ${widget.eventType.label}'
+                      : widget.eventType.label,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],
