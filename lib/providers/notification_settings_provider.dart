@@ -13,21 +13,24 @@ const _uuid = Uuid();
 const Map<CatEventType, int> defaultThresholdHours = {
   CatEventType.litterScoop: 24,
   CatEventType.litterChange: 168,
-  CatEventType.waterChange: 48,
+  CatEventType.waterChange: 24,
   CatEventType.vomit: 0,
   CatEventType.hairball: 0,
-  CatEventType.deworming: 0,
-  CatEventType.fleaTreatment: 0,
+  CatEventType.deworming: 720,
+  CatEventType.fleaTreatment: 720,
   CatEventType.medication: 0,
   CatEventType.feeding: 0,
   CatEventType.playtime: 0,
   CatEventType.note: 0,
+  CatEventType.weight: 0,
 };
 
 const Set<CatEventType> defaultEnabledTypes = {
   CatEventType.litterScoop,
   CatEventType.litterChange,
   CatEventType.waterChange,
+  CatEventType.deworming,
+  CatEventType.fleaTreatment,
 };
 
 class EffectiveSetting {

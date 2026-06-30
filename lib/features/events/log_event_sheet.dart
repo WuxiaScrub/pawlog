@@ -54,10 +54,12 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   final _notesController = TextEditingController();
   final _productController = TextEditingController();
   final _durationController = TextEditingController();
+  final _weightController = TextEditingController();
   bool _hairballPresent = false;
   bool _afterEating = false;
   bool _unusualColorOrOdor = false;
   bool _firstTime = false;
+  bool _weightInLbs = true;
   bool _saving = false;
   String? _photoPath;
   final _photoStorage = const PhotoStorage();
@@ -80,6 +82,11 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
     final duration = metadata['duration_minutes'];
     if (duration != null) _durationController.text = duration.toString();
     _photoPath = metadata['photo_path'] as String?;
+    final weightValue = metadata['weight_value'];
+    if (weightValue != null) {
+      _weightInLbs = (metadata['weight_unit'] as String?) != 'kg';
+      _weightController.text = (weightValue as num).toStringAsFixed(1);
+    }
   }
 
   @override
@@ -87,6 +94,7 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
     _notesController.dispose();
     _productController.dispose();
     _durationController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -160,6 +168,16 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
       case CatEventType.playtime:
         final minutes = int.tryParse(_durationController.text.trim());
         if (minutes != null) metadata['duration_minutes'] = minutes;
+        break;
+      case CatEventType.weight:
+        final raw = double.tryParse(_weightController.text.trim());
+        if (raw != null) {
+          metadata['weight_value'] = raw;
+          metadata['weight_unit'] = _weightInLbs ? 'lb' : 'kg';
+          // Always store a kg copy for programmatic use.
+          metadata['weight_kg'] =
+              _weightInLbs ? raw * 0.453592 : raw;
+        }
         break;
       default:
         break;
@@ -273,6 +291,53 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
                 decoration: const InputDecoration(
                   labelText: 'Duration (minutes, optional)',
                 ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (widget.eventType == CatEventType.weight) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _weightController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      decoration: InputDecoration(
+                        labelText:
+                            'Weight (${_weightInLbs ? 'lbs' : 'kg'})',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('lbs')),
+                      ButtonSegment(value: false, label: Text('kg')),
+                    ],
+                    selected: {_weightInLbs},
+                    onSelectionChanged: (sel) {
+                      final newInLbs = sel.first;
+                      if (newInLbs == _weightInLbs) return;
+                      final raw = double.tryParse(
+                          _weightController.text.trim());
+                      setState(() {
+                        _weightInLbs = newInLbs;
+                        if (raw != null) {
+                          final converted = newInLbs
+                              ? raw / 0.453592
+                              : raw * 0.453592;
+                          _weightController.text =
+                              converted.toStringAsFixed(1);
+                        }
+                      });
+                    },
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
             ],

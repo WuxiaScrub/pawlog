@@ -29,6 +29,7 @@ class _CatProfileSetupScreenState
   late final TextEditingController _nameController;
   late final TextEditingController _breedController;
   late final TextEditingController _weightController;
+  bool _weightInLbs = true;
   DateTime? _dateOfBirth;
   String? _photoPath;
   bool _saving = false;
@@ -41,8 +42,14 @@ class _CatProfileSetupScreenState
     final cat = widget.existingCat;
     _nameController = TextEditingController(text: cat?.name ?? '');
     _breedController = TextEditingController(text: cat?.breed ?? '');
-    _weightController =
-        TextEditingController(text: cat?.weightKg?.toString() ?? '');
+    if (cat?.weightKg != null) {
+      // Display existing weight in lbs by default.
+      final lbs = cat!.weightKg! / 0.453592;
+      _weightController =
+          TextEditingController(text: lbs.toStringAsFixed(1));
+    } else {
+      _weightController = TextEditingController();
+    }
     _dateOfBirth = cat?.dateOfBirth;
     _photoPath = cat?.photoPath;
   }
@@ -119,7 +126,12 @@ class _CatProfileSetupScreenState
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
-    final weight = double.tryParse(_weightController.text.trim());
+    final rawWeight = double.tryParse(_weightController.text.trim());
+    final weight = rawWeight == null
+        ? null
+        : _weightInLbs
+            ? rawWeight * 0.453592
+            : rawWeight;
     final repo = ref.read(catsRepositoryProvider);
 
     if (widget.existingCat == null) {
@@ -204,11 +216,49 @@ class _CatProfileSetupScreenState
                 decoration: const InputDecoration(labelText: 'Breed'),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _weightController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Weight (kg)'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _weightController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText:
+                            'Weight (${_weightInLbs ? 'lbs' : 'kg'})',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('lbs')),
+                      ButtonSegment(value: false, label: Text('kg')),
+                    ],
+                    selected: {_weightInLbs},
+                    onSelectionChanged: (sel) {
+                      final newInLbs = sel.first;
+                      if (newInLbs == _weightInLbs) return;
+                      final raw = double.tryParse(
+                          _weightController.text.trim());
+                      setState(() {
+                        _weightInLbs = newInLbs;
+                        if (raw != null) {
+                          final converted = newInLbs
+                              ? raw / 0.453592
+                              : raw * 0.453592;
+                          _weightController.text =
+                              converted.toStringAsFixed(1);
+                        }
+                      });
+                    },
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               ListTile(
