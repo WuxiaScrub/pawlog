@@ -20,45 +20,51 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final events = ref.watch(eventsStreamProvider(cat.id)).value ?? [];
+    final eventsAsync = ref.watch(eventsStreamProvider(cat.id));
     final overdue = ref.watch(overdueItemsProvider(cat.id));
     final settings = ref.watch(effectiveSettingsProvider);
     final now = DateTime.now();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (overdue.isNotEmpty)
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Overdue',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    for (final item in overdue)
+      body: eventsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error loading data: $e')),
+        data: (events) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (overdue.isNotEmpty)
+              Card(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        '${item.eventType.label}: last logged ${_hoursAgo(item.lastLoggedAt, now)}',
+                        'Overdue',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                  ],
+                      const SizedBox(height: 4),
+                      for (final item in overdue)
+                        Text(
+                          '${item.eventType.label}: last logged ${_hoursAgo(item.lastLoggedAt, now)}',
+                        ),
+                    ],
+                  ),
                 ),
               ),
+            const SizedBox(height: 16),
+            _LatenessRanking(events: events, settings: settings, now: now),
+            const SizedBox(height: 28),
+            Text(
+              'Symptom trend (vomiting & hairballs)',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          const SizedBox(height: 16),
-          _LatenessRanking(events: events, settings: settings, now: now),
-          const SizedBox(height: 28),
-          Text('Symptom trend (vomiting & hairballs)',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          _SymptomTrendChart(events: events, now: now),
-        ],
+            const SizedBox(height: 12),
+            _SymptomTrendChart(events: events, now: now),
+          ],
+        ),
       ),
     );
   }
