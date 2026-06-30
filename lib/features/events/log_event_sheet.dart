@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/database.dart';
 import '../../core/local_photo.dart';
@@ -62,12 +63,14 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   bool _weightInLbs = true;
   bool _saving = false;
   String? _photoPath;
+  late DateTime _loggedAt;
   final _photoStorage = const PhotoStorage();
 
   @override
   void initState() {
     super.initState();
     final existing = widget.existingEvent;
+    _loggedAt = existing?.loggedAt ?? DateTime.now();
     if (existing == null) return;
 
     _notesController.text = existing.notes ?? '';
@@ -96,6 +99,25 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
     _durationController.dispose();
     _weightController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _loggedAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_loggedAt),
+    );
+    if (time == null) return;
+    setState(() {
+      _loggedAt = DateTime(
+          date.year, date.month, date.day, time.hour, time.minute);
+    });
   }
 
   Future<void> _pickPhoto() async {
@@ -193,6 +215,7 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
         id: existing.id,
         notes: notes,
         metadata: metadata.isEmpty ? null : metadata,
+        loggedAt: _loggedAt,
       );
     } else {
       await repo.logEvent(
@@ -200,6 +223,7 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
         eventType: widget.eventType,
         notes: notes,
         metadata: metadata.isEmpty ? null : metadata,
+        loggedAt: _loggedAt,
       );
     }
 
@@ -341,6 +365,20 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
               ),
               const SizedBox(height: 8),
             ],
+            InkWell(
+              onTap: _pickDateTime,
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Date & time',
+                  prefixIcon: Icon(Icons.calendar_today_outlined),
+                ),
+                child: Text(
+                  DateFormat.yMMMd().add_jm().format(_loggedAt),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _notesController,
               maxLines: 2,

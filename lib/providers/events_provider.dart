@@ -47,11 +47,13 @@ class EventsRepository {
     required String id,
     String? notes,
     Map<String, dynamic>? metadata,
+    DateTime? loggedAt,
   }) {
     return (_db.update(_db.events)..where((t) => t.id.equals(id))).write(
           EventsCompanion(
             notes: Value(notes),
             metadataJson: Value(metadata != null ? jsonEncode(metadata) : null),
+            loggedAt: loggedAt != null ? Value(loggedAt) : const Value.absent(),
           ),
         );
   }
