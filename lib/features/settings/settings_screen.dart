@@ -93,13 +93,23 @@ class _ThresholdTile extends StatelessWidget {
   // provider the moment a save round-trips through the database.
   int get _hours => setting.thresholdHours == 0 ? 24 : setting.thresholdHours;
 
+  bool get _useDays => _hours > 48;
+
+  String get _thresholdLabel {
+    if (_useDays) {
+      final days = (_hours / 24).round();
+      return 'Alert if not logged in $days ${days == 1 ? 'day' : 'days'}';
+    }
+    return 'Alert if not logged in $_hours h';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(eventType.icon),
       title: Text(eventType.label),
       subtitle: setting.enabled
-          ? Text('Alert if not logged in $_hours h')
+          ? Text(_thresholdLabel)
           : const Text('Reminder off'),
       trailing: Switch(
         value: setting.enabled,
@@ -107,7 +117,7 @@ class _ThresholdTile extends StatelessWidget {
       ),
       onTap: setting.enabled
           ? () async {
-              final hours = await _promptHours(context, _hours);
+              final hours = await _promptThreshold(context, _hours);
               if (hours != null) {
                 onChanged(true, hours);
               }
@@ -116,12 +126,16 @@ class _ThresholdTile extends StatelessWidget {
     );
   }
 
-  Future<int?> _promptHours(BuildContext context, int current) {
-    final controller = TextEditingController(text: current.toString());
+  Future<int?> _promptThreshold(BuildContext context, int currentHours) {
+    final useDays = currentHours > 48;
+    final initialValue =
+        useDays ? (currentHours / 24).round() : currentHours;
+    final controller =
+        TextEditingController(text: initialValue.toString());
     return showDialog<int>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Alert threshold (hours)'),
+      builder: (ctx) => AlertDialog(
+        title: Text('Alert threshold (${useDays ? 'days' : 'hours'})'),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
@@ -129,13 +143,18 @@ class _ThresholdTile extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
               final value = int.tryParse(controller.text.trim());
-              Navigator.of(context).pop(value);
+              if (value == null) {
+                Navigator.of(ctx).pop();
+                return;
+              }
+              final hours = useDays ? value * 24 : value;
+              Navigator.of(ctx).pop(hours);
             },
             child: const Text('Save'),
           ),

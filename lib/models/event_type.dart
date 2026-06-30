@@ -12,6 +12,7 @@ enum CatEventType {
   feeding,
   playtime,
   note,
+  weight,
 }
 
 extension CatEventTypeX on CatEventType {
@@ -39,6 +40,8 @@ extension CatEventTypeX on CatEventType {
         return 'playtime';
       case CatEventType.note:
         return 'note';
+      case CatEventType.weight:
+        return 'weight';
     }
   }
 
@@ -66,6 +69,8 @@ extension CatEventTypeX on CatEventType {
         return 'Playtime';
       case CatEventType.note:
         return 'General Note';
+      case CatEventType.weight:
+        return 'Weight';
     }
   }
 
@@ -93,6 +98,8 @@ extension CatEventTypeX on CatEventType {
         return Icons.toys;
       case CatEventType.note:
         return Icons.notes;
+      case CatEventType.weight:
+        return Icons.monitor_weight;
     }
   }
 
@@ -104,6 +111,7 @@ extension CatEventTypeX on CatEventType {
     switch (this) {
       case CatEventType.vomit:
       case CatEventType.hairball:
+      case CatEventType.weight:
         return false;
       default:
         return true;
