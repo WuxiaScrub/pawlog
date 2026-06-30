@@ -12,12 +12,13 @@ class OverdueItem {
   });
 
   final CatEventType eventType;
-  final DateTime? lastLoggedAt;
+  final DateTime lastLoggedAt;
   final int thresholdHours;
 }
 
-/// Event types whose reminder threshold has been exceeded (or that have
-/// never been logged at all) for the given cat.
+/// Event types whose reminder threshold has been exceeded for the given
+/// cat. Event types with no logged history yet are never included — a
+/// baseline must be established with a first log before reminders begin.
 final overdueItemsProvider =
     Provider.family<List<OverdueItem>, String>((ref, catId) {
   final events = ref.watch(eventsStreamProvider(catId)).value ?? [];
@@ -39,8 +40,12 @@ final overdueItemsProvider =
     final setting = entry.value;
     if (!setting.enabled || setting.thresholdHours <= 0) continue;
 
+    // An event type with no logged history yet has nothing to be overdue
+    // against — only alert once a first event establishes a baseline.
     final lastLogged = lastLoggedByType[type];
-    final isOverdue = lastLogged == null ||
+    if (lastLogged == null) continue;
+
+    final isOverdue =
         now.difference(lastLogged).inHours >= setting.thresholdHours;
 
     if (isOverdue) {
