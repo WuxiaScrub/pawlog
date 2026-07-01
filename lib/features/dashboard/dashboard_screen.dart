@@ -123,8 +123,7 @@ class _LatenessRanking extends StatelessWidget {
       // Every enabled, thresholded chore shows up here — even ones with
       // no logged history yet — so the ranking reflects everything the
       // owner is being reminded about, not just whatever they've logged.
-      final timestamps = (timestampsByType[type] ?? const <DateTime>[])
-        ..sort();
+      final timestamps = (timestampsByType[type] ?? <DateTime>[])..sort();
 
       var lateCount = 0;
       var total = 0;
