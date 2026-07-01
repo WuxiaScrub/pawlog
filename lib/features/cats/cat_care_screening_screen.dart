@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../models/event_type.dart';
 import '../../providers/cats_provider.dart';
+import '../../providers/events_provider.dart';
+import '../../providers/notification_settings_provider.dart';
 
 /// Screening questions shown once after a new cat profile is created.
 /// The user's answers determine which event types appear as quick-log
@@ -52,6 +55,9 @@ class _CatCareScreeningScreenState
 
   late final List<_ScreeningQuestion> _questions;
   late final Map<CatEventType, bool> _enabled;
+  final Map<CatEventType, DateTime?> _lastDone = {
+    for (final t in seedBaselineAtRegistration) t: null,
+  };
   bool _saving = false;
 
   @override
@@ -104,6 +110,23 @@ class _CatCareScreeningScreenState
           catId: widget.catId,
           enabledTypes: enabledTypes,
         );
+
+    // Seed a "last done" baseline for the long-cadence chores so reminders
+    // can start counting immediately instead of staying silent forever
+    // until a first real log. litterChange is always tracked; deworming
+    // and fleaTreatment only get seeded if the user said they apply.
+    final eventsRepo = ref.read(eventsRepositoryProvider);
+    for (final type in seedBaselineAtRegistration) {
+      final applies =
+          type == CatEventType.litterChange || _enabled[type] == true;
+      if (!applies) continue;
+      await eventsRepo.logEvent(
+        catId: widget.catId,
+        eventType: type,
+        notes: 'Added automatically when ${widget.catName} was set up',
+        loggedAt: _lastDone[type] ?? DateTime.now(),
+      );
+    }
     // No Navigator.pop() — this screen is rendered directly by _Root, which
     // will replace it with MainShell the moment screeningDone flips to true.
   }
@@ -130,6 +153,21 @@ class _CatCareScreeningScreenState
                 ),
           ),
           const SizedBox(height: 24),
+          Text(
+            'Already been caring for ${widget.catName}? Tell us when you last did these so reminders start counting from the right day instead of today.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
+          const SizedBox(height: 8),
+          _LastDoneField(
+            label: 'Litter last fully changed',
+            value: _lastDone[CatEventType.litterChange],
+            onChanged: (d) =>
+                setState(() => _lastDone[CatEventType.litterChange] = d),
+          ),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
           for (final q in _questions) ...[
             _ScreeningTile(
               question: q.question,
@@ -142,6 +180,17 @@ class _CatCareScreeningScreenState
                 }
               }),
             ),
+            if (q.types.every((t) => _enabled[t] == true))
+              for (final t in q.types)
+                if (seedBaselineAtRegistration.contains(t))
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: _LastDoneField(
+                      label: 'Last ${t.label.toLowerCase()}',
+                      value: _lastDone[t],
+                      onChanged: (d) => setState(() => _lastDone[t] = d),
+                    ),
+                  ),
             const Divider(height: 1),
           ],
           const SizedBox(height: 32),
@@ -208,6 +257,60 @@ class _ScreeningTile extends StatelessWidget {
         ],
       ),
       isThreeLine: true,
+    );
+  }
+}
+
+/// Optional date picker used to backfill a "last done" baseline for a
+/// chore the user was already keeping up with before adding this cat.
+/// Leaving it unset falls back to the cat's registration time.
+class _LastDoneField extends StatelessWidget {
+  const _LastDoneField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChanged;
+
+  Future<void> _pick(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: value ?? now,
+      firstDate: DateTime(2015),
+      lastDate: now,
+    );
+    // Date-only picker; pin to noon so the resulting event doesn't display
+    // as a slightly odd midnight timestamp in the log history.
+    if (picked != null) {
+      onChanged(DateTime(picked.year, picked.month, picked.day, 12));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: const Icon(Icons.event_outlined, size: 20),
+      title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+      subtitle: Text(
+        value != null
+            ? DateFormat.yMMMd().format(value!)
+            : 'Not sure — start counting from today',
+      ),
+      trailing: value != null
+          ? IconButton(
+              icon: const Icon(Icons.clear, size: 18),
+              onPressed: () => onChanged(null),
+              tooltip: 'Clear',
+            )
+          : null,
+      onTap: () => _pick(context),
     );
   }
 }
