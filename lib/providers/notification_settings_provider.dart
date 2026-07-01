@@ -33,6 +33,19 @@ const Set<CatEventType> defaultEnabledTypes = {
   CatEventType.fleaTreatment,
 };
 
+/// Event types whose default threshold gives a week or more of runway
+/// (litterChange, deworming, fleaTreatment), so seeding a "last done"
+/// baseline at cat registration won't fire a false-positive overdue
+/// alert before the user has had a chance to log a real event. The
+/// short-cadence chores (litterScoop, waterChange, both 24h) are
+/// deliberately excluded — seeding those would almost always trigger a
+/// spurious reminder within a day of setup.
+const Set<CatEventType> seedBaselineAtRegistration = {
+  CatEventType.litterChange,
+  CatEventType.deworming,
+  CatEventType.fleaTreatment,
+};
+
 class EffectiveSetting {
   const EffectiveSetting({required this.thresholdHours, required this.enabled});
   final int thresholdHours;
