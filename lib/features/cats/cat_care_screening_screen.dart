@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/time_picker_dialog.dart';
 import '../../models/event_type.dart';
 import '../../providers/cats_provider.dart';
 import '../../providers/events_provider.dart';
@@ -287,8 +288,8 @@ class _LastDoneField extends StatelessWidget {
     final initialTime = value != null
         ? TimeOfDay.fromDateTime(value!)
         : const TimeOfDay(hour: 12, minute: 0);
-    final time = await showTimePicker(
-      context: context,
+    final time = await showTimeDropdownPicker(
+      context,
       initialTime: initialTime,
     );
     // Time is optional here too — default to noon if skipped, since most

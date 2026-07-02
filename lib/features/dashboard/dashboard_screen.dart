@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
-import '../../providers/notification_settings_provider.dart';
 import '../../providers/overdue_provider.dart';
 
 const _trendWeeks = 4;
@@ -22,7 +21,6 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(eventsStreamProvider(cat.id));
     final overdue = ref.watch(overdueItemsProvider(cat.id));
-    final settings = ref.watch(effectiveSettingsProvider);
     final now = DateTime.now();
 
     return Scaffold(
@@ -48,14 +46,16 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       for (final item in overdue)
                         Text(
-                          '${item.eventType.label}: last logged ${_hoursAgo(item.lastLoggedAt, now)}',
+                          '${item.eventType.label}: last logged ${_timeAgo(item.lastLoggedAt, now)}',
                         ),
                     ],
                   ),
                 ),
               ),
-            const SizedBox(height: 16),
-            _LatenessRanking(events: events, settings: settings, now: now),
+            if (overdue.isNotEmpty) const SizedBox(height: 16),
+            _LastActivitySection(events: events, now: now),
+            const SizedBox(height: 24),
+            _AverageIntervalSection(events: events),
             const SizedBox(height: 28),
             Text(
               'Symptom trend (vomiting & hairballs)',
@@ -69,41 +69,126 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  String _hoursAgo(DateTime then, DateTime now) {
+  String _timeAgo(DateTime then, DateTime now) {
     final hours = now.difference(then).inHours;
     if (hours < 24) return '$hours h ago';
     return '${(hours / 24).floor()} d ago';
   }
 }
 
-class _LatenessStat {
-  const _LatenessStat({
-    required this.eventType,
-    required this.lateCount,
-    required this.totalIntervals,
-  });
-
-  final CatEventType eventType;
-  final int lateCount;
-  final int totalIntervals;
-
-  bool get hasData => totalIntervals > 0;
-  double get lateRate => totalIntervals == 0 ? 0 : lateCount / totalIntervals;
+String _relativeTime(Duration diff) {
+  final minutes = diff.inMinutes;
+  if (minutes < 2) return 'just now';
+  if (minutes < 60) return '${minutes} min ago';
+  final hours = diff.inHours;
+  if (hours < 24) return '${hours} h ago';
+  final days = diff.inDays;
+  if (days < 30) return '${days} d ago';
+  if (days < 365) return '${(days / 7).floor()} wk ago';
+  return '${(days / 30).floor()} mo ago';
 }
 
-/// Ranks schedulable event types by how often they were logged later than
-/// their reminder threshold — i.e. what the owner most tends to fall behind
-/// on (litter, water, etc.), rather than raw activity volume.
-class _LatenessRanking extends StatelessWidget {
-  const _LatenessRanking({
-    required this.events,
-    required this.settings,
-    required this.now,
-  });
+String _intervalLabel(Duration avg) {
+  final minutes = avg.inMinutes;
+  if (minutes < 90) return 'every ${minutes} min';
+  final hours = avg.inHours;
+  if (hours < 36) return 'every ${hours} h';
+  final days = avg.inDays;
+  if (days < 14) return 'every ${days} d';
+  if (days < 90) return 'every ${(days / 7).floor()} wk';
+  return 'every ${(days / 30).floor()} mo';
+}
+
+class _LastActivitySection extends StatelessWidget {
+  const _LastActivitySection({required this.events, required this.now});
 
   final List<Event> events;
-  final Map<CatEventType, EffectiveSetting> settings;
   final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final latest = <CatEventType, DateTime>{};
+    for (final event in events) {
+      final type = CatEventTypeX.fromStorageKey(event.eventType);
+      final existing = latest[type];
+      if (existing == null || event.loggedAt.isAfter(existing)) {
+        latest[type] = event.loggedAt;
+      }
+    }
+
+    final withData = latest.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final withDataTypes = withData.map((e) => e.key).toSet();
+    final noDataTypes =
+        CatEventType.values.where((t) => !withDataTypes.contains(t)).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Last activity',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        for (final entry in withData)
+          _ActivityRow(
+            type: entry.key,
+            label: _relativeTime(now.difference(entry.value)),
+            muted: false,
+          ),
+        for (final type in noDataTypes)
+          _ActivityRow(type: type, label: 'Never logged', muted: true),
+      ],
+    );
+  }
+}
+
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow({
+    required this.type,
+    required this.label,
+    required this.muted,
+  });
+
+  final CatEventType type;
+  final String label;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = muted ? Theme.of(context).disabledColor : null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(type.icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              type.label,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: color),
+            ),
+          ),
+          Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AverageIntervalSection extends StatelessWidget {
+  const _AverageIntervalSection({required this.events});
+
+  final List<Event> events;
 
   @override
   Widget build(BuildContext context) {
@@ -113,148 +198,59 @@ class _LatenessRanking extends StatelessWidget {
       (timestampsByType[type] ??= []).add(event.loggedAt);
     }
 
-    final stats = <_LatenessStat>[];
-    for (final type in CatEventType.values) {
-      if (!type.isSchedulable) continue;
-      final setting = settings[type];
-      if (setting == null || !setting.enabled || setting.thresholdHours <= 0) {
-        continue;
+    final averages = <CatEventType, Duration>{};
+    for (final entry in timestampsByType.entries) {
+      final sorted = entry.value..sort();
+      if (sorted.length < 2) continue;
+      var totalMicros = 0;
+      for (var i = 1; i < sorted.length; i++) {
+        totalMicros += sorted[i].difference(sorted[i - 1]).inMicroseconds;
       }
-      // Every enabled, thresholded chore shows up here — even ones with
-      // no logged history yet — so the ranking reflects everything the
-      // owner is being reminded about, not just whatever they've logged.
-      final timestamps = (timestampsByType[type] ?? <DateTime>[])..sort();
-
-      var lateCount = 0;
-      var total = 0;
-      for (var i = 1; i < timestamps.length; i++) {
-        total++;
-        final gapHours =
-            timestamps[i].difference(timestamps[i - 1]).inHours;
-        if (gapHours > setting.thresholdHours) lateCount++;
-      }
-      if (timestamps.isNotEmpty) {
-        // The open interval since the most recent log counts too — that's
-        // what "currently overdue" looks like in this history.
-        total++;
-        if (now.difference(timestamps.last).inHours > setting.thresholdHours) {
-          lateCount++;
-        }
-      }
-
-      stats.add(_LatenessStat(
-        eventType: type,
-        lateCount: lateCount,
-        totalIntervals: total,
-      ));
+      averages[entry.key] =
+          Duration(microseconds: totalMicros ~/ (sorted.length - 1));
     }
-
-    stats.sort((a, b) {
-      if (a.hasData != b.hasData) return a.hasData ? -1 : 1;
-      return b.lateRate.compareTo(a.lateRate);
-    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Where you fall behind',
+          'Average intervals',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 4),
         Text(
-          'How often each chore was logged later than its reminder threshold.',
+          'Average time between each logged activity.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 12),
-        if (stats.isEmpty)
+        if (averages.isEmpty)
           Text(
-            'Not enough history yet — keep logging to see what you tend to miss.',
+            'Log more events to see your average intervals per activity.',
             style: Theme.of(context).textTheme.bodySmall,
           )
         else
-          for (final stat in stats) _LatenessRow(stat: stat),
+          for (final entry in averages.entries.toList()
+            ..sort((a, b) => a.value.compareTo(b.value)))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Icon(entry.key.icon, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      entry.key.label,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  Text(
+                    _intervalLabel(entry.value),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
       ],
-    );
-  }
-}
-
-class _LatenessRow extends StatelessWidget {
-  const _LatenessRow({required this.stat});
-
-  final _LatenessStat stat;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!stat.hasData) {
-      final mutedStyle = Theme.of(context)
-          .textTheme
-          .bodyMedium
-          ?.copyWith(color: Theme.of(context).disabledColor);
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Row(
-          children: [
-            Icon(
-              stat.eventType.icon,
-              size: 16,
-              color: Theme.of(context).disabledColor,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(stat.eventType.label, style: mutedStyle),
-            ),
-            Text(
-              'No logs yet',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final rate = stat.lateRate.clamp(0.0, 1.0);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(stat.eventType.icon, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  stat.eventType.label,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-              Text(
-                '${(rate * 100).round()}% late',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: rate,
-              minHeight: 8,
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
-              color: rate >= 0.5
-                  ? Colors.redAccent
-                  : Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Late ${stat.lateCount} of ${stat.totalIntervals} time${stat.totalIntervals == 1 ? '' : 's'}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
     );
   }
 }
@@ -268,7 +264,6 @@ class _SymptomTrendChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateTime(now.year, now.month, now.day);
-    // Buckets are 7-day windows ending today, oldest first.
     final bucketStarts = [
       for (var i = _trendWeeks - 1; i >= 0; i--)
         today.subtract(Duration(days: 7 * i + 6)),
@@ -323,8 +318,6 @@ class _SymptomTrendChart extends StatelessWidget {
                     reservedSize: 28,
                     interval: 1,
                     getTitlesWidget: (value, meta) {
-                      // Integer-only labels: 0.5/1.5 ticks would be
-                      // meaningless for an event count.
                       if (value != value.roundToDouble()) {
                         return const SizedBox.shrink();
                       }
@@ -357,12 +350,13 @@ class _SymptomTrendChart extends StatelessWidget {
                     },
                   ),
                 ),
-                topTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
               ),
-              gridData: const FlGridData(drawVerticalLine: false, horizontalInterval: 1),
+              gridData: const FlGridData(
+                  drawVerticalLine: false, horizontalInterval: 1),
               borderData: FlBorderData(show: false),
             ),
           ),
