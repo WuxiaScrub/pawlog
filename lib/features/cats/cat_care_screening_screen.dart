@@ -277,17 +277,30 @@ class _LastDoneField extends StatelessWidget {
 
   Future<void> _pick(BuildContext context) async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
       initialDate: value ?? now,
       firstDate: DateTime(2015),
       lastDate: now,
     );
-    // Date-only picker; pin to noon so the resulting event doesn't display
-    // as a slightly odd midnight timestamp in the log history.
-    if (picked != null) {
-      onChanged(DateTime(picked.year, picked.month, picked.day, 12));
-    }
+    if (date == null || !context.mounted) return;
+    final initialTime = value != null
+        ? TimeOfDay.fromDateTime(value!)
+        : const TimeOfDay(hour: 12, minute: 0);
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+    // Time is optional here too — default to noon if skipped, since most
+    // backfilled baselines are only remembered as "that day," not a time.
+    final effectiveTime = time ?? initialTime;
+    onChanged(DateTime(
+      date.year,
+      date.month,
+      date.day,
+      effectiveTime.hour,
+      effectiveTime.minute,
+    ));
   }
 
   @override
@@ -300,7 +313,7 @@ class _LastDoneField extends StatelessWidget {
       title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       subtitle: Text(
         value != null
-            ? DateFormat.yMMMd().format(value!)
+            ? DateFormat.yMMMd().add_jm().format(value!)
             : 'Not sure — start counting from today',
       ),
       trailing: value != null
