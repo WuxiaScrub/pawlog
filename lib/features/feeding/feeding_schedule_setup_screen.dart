@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database.dart';
+import '../../core/time_picker_dialog.dart';
 import '../../providers/feeding_provider.dart';
 
 /// Optional setup wizard for a cat's feeding schedule. A cat with no
@@ -66,8 +67,8 @@ class _FeedingScheduleSetupScreenState
   }
 
   Future<void> _pickTime(_SlotDraft slot) async {
-    final picked = await showTimePicker(
-      context: context,
+    final picked = await showTimeDropdownPicker(
+      context,
       initialTime: TimeOfDay(hour: slot.hour, minute: slot.minute),
     );
     if (picked != null) {

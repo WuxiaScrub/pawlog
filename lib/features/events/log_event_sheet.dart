@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/time_picker_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -109,8 +111,8 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
     if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
+    final time = await showTimeDropdownPicker(
+      context,
       initialTime: TimeOfDay.fromDateTime(_loggedAt),
     );
     if (time == null) return;
