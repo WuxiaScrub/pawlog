@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
+import '../../providers/notification_settings_provider.dart';
 import '../../providers/overdue_provider.dart';
 
 const _trendWeeks = 4;
@@ -46,7 +47,7 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       for (final item in overdue)
                         Text(
-                          '${item.eventType.label}: last logged ${_timeAgo(item.lastLoggedAt, now)}',
+                          '${item.eventType.label}: last logged ${_formatElapsed(now.difference(item.lastLoggedAt), item.thresholdHours)}',
                         ),
                     ],
                   ),
@@ -68,12 +69,21 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  String _timeAgo(DateTime then, DateTime now) {
-    final hours = now.difference(then).inHours;
-    if (hours < 24) return '$hours h ago';
-    return '${(hours / 24).floor()} d ago';
+/// Formats elapsed time using the same unit the alert threshold uses for this
+/// event type, so the dashboard and settings always agree on the unit.
+/// Thresholds > 48 h are shown in days (matching settings); ≤ 48 h in hours.
+/// Event types with no threshold (0) fall back to a generic human-friendly format.
+String _formatElapsed(Duration diff, int thresholdHours) {
+  if (diff.inMinutes < 2) return 'just now';
+  if (thresholdHours <= 0) return _relativeTime(diff);
+  if (thresholdHours > 48) {
+    final days = diff.inDays;
+    return days == 0 ? '< 1 d ago' : '$days d ago';
   }
+  final hours = diff.inHours;
+  return hours == 0 ? '< 1 h ago' : '$hours h ago';
 }
 
 String _relativeTime(Duration diff) {
@@ -99,14 +109,16 @@ String _intervalLabel(Duration avg) {
   return 'every ${(days / 30).floor()} mo';
 }
 
-class _LastActivitySection extends StatelessWidget {
+class _LastActivitySection extends ConsumerWidget {
   const _LastActivitySection({required this.events, required this.now});
 
   final List<Event> events;
   final DateTime now;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(effectiveSettingsProvider);
+
     final latest = <CatEventType, DateTime>{};
     for (final event in events) {
       final type = CatEventTypeX.fromStorageKey(event.eventType);
@@ -133,7 +145,10 @@ class _LastActivitySection extends StatelessWidget {
         for (final entry in withData)
           _ActivityRow(
             type: entry.key,
-            label: _relativeTime(now.difference(entry.value)),
+            label: _formatElapsed(
+              now.difference(entry.value),
+              settings[entry.key]?.thresholdHours ?? 0,
+            ),
             muted: false,
           ),
         for (final type in noDataTypes)
