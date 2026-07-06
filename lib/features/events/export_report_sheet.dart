@@ -58,7 +58,9 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
   DateTimeRange? _range;
   String _rangeLabel = 'All time';
   late _ScopeOption _scope;
+  bool _includeNotes = true;
   bool _includeDetails = true;
+  bool _includePhotos = false;
   bool _generating = false;
 
   @override
@@ -154,7 +156,9 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
         cat: widget.cat,
         events: events,
         rangeLabel: _rangeLabel,
+        includeNotes: _includeNotes,
         includeDetails: _includeDetails,
+        includePhotos: _includePhotos,
       );
       final safeName =
           widget.cat.name.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_');
@@ -254,12 +258,28 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
             subtitle: const Text('Includes litter, water, feeding & playtime'),
           ),
           const SizedBox(height: 4),
+          _sectionLabel(context, 'What to show per event'),
+          SwitchListTile(
+            value: _includeNotes,
+            onChanged: (v) => setState(() => _includeNotes = v),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Include notes'),
+            subtitle: const Text('Free-text notes on each event'),
+          ),
           SwitchListTile(
             value: _includeDetails,
             onChanged: (v) => setState(() => _includeDetails = v),
             contentPadding: EdgeInsets.zero,
-            title: const Text('Include notes & details'),
-            subtitle: const Text('Per-event notes and captured metadata'),
+            title: const Text('Include additional details'),
+            subtitle: const Text(
+                'Captured metadata (hairball present, product name, etc.)'),
+          ),
+          SwitchListTile(
+            value: _includePhotos,
+            onChanged: (v) => setState(() => _includePhotos = v),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Include photos'),
+            subtitle: const Text('Embed photos attached to events'),
           ),
           const SizedBox(height: 16),
           SizedBox(

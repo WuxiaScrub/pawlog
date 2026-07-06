@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -18,13 +20,16 @@ class VetReportService {
   ///
   /// [rangeLabel] is a human-readable description of the date window (e.g.
   /// "Last 90 days" or "Mar 1 – Apr 15, 2026") shown in the header.
-  /// [includeDetails] controls whether per-event notes and metadata are
-  /// rendered, or just the type + timestamp timeline.
+  /// [includeNotes] renders each event's free-text notes; [includeDetails]
+  /// renders captured metadata (hairball present, product name, etc.);
+  /// [includePhotos] embeds any photo attached to an event.
   Future<Uint8List> build({
     required Cat cat,
     required List<Event> events,
     required String rangeLabel,
+    bool includeNotes = true,
     bool includeDetails = true,
+    bool includePhotos = false,
   }) async {
     final doc = pw.Document(
       title: 'PawLog vet report — ${cat.name}',
@@ -87,7 +92,12 @@ class VetReportService {
               style: const pw.TextStyle(color: PdfColors.grey600),
             )
           else
-            _buildTimeline(sorted, includeDetails: includeDetails),
+            _buildTimeline(
+              sorted,
+              includeNotes: includeNotes,
+              includeDetails: includeDetails,
+              includePhotos: includePhotos,
+            ),
         ],
       ),
     );
@@ -223,7 +233,12 @@ class VetReportService {
     );
   }
 
-  pw.Widget _buildTimeline(List<Event> events, {required bool includeDetails}) {
+  pw.Widget _buildTimeline(
+    List<Event> events, {
+    required bool includeNotes,
+    required bool includeDetails,
+    required bool includePhotos,
+  }) {
     String? lastDay;
     final children = <pw.Widget>[];
 
@@ -245,7 +260,12 @@ class VetReportService {
         );
         lastDay = day;
       }
-      children.add(_buildEventRow(event, includeDetails: includeDetails));
+      children.add(_buildEventRow(
+        event,
+        includeNotes: includeNotes,
+        includeDetails: includeDetails,
+        includePhotos: includePhotos,
+      ));
     }
 
     return pw.Column(
@@ -254,18 +274,27 @@ class VetReportService {
     );
   }
 
-  pw.Widget _buildEventRow(Event event, {required bool includeDetails}) {
+  pw.Widget _buildEventRow(
+    Event event, {
+    required bool includeNotes,
+    required bool includeDetails,
+    required bool includePhotos,
+  }) {
     final type = CatEventTypeX.fromStorageKey(event.eventType);
     final time = DateFormat.jm().format(event.loggedAt);
 
     final detailLines = <String>[];
-    if (includeDetails) {
-      if (event.notes != null && event.notes!.trim().isNotEmpty) {
-        detailLines.add(event.notes!.trim());
-      }
-      final meta = _readableMetadata(event.metadataJson);
-      detailLines.addAll(meta);
+    if (includeNotes &&
+        event.notes != null &&
+        event.notes!.trim().isNotEmpty) {
+      detailLines.add(event.notes!.trim());
     }
+    if (includeDetails) {
+      detailLines.addAll(_readableMetadata(event.metadataJson));
+    }
+
+    final photoBytes =
+        includePhotos ? _loadPhotoBytes(_photoPath(event.metadataJson)) : null;
 
     return pw.Container(
       margin: const pw.EdgeInsets.only(bottom: 6),
@@ -306,6 +335,20 @@ class VetReportService {
                 style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
               ),
             ),
+          if (photoBytes != null)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(left: 55, top: 4),
+              child: pw.ClipRRect(
+                horizontalRadius: 4,
+                verticalRadius: 4,
+                child: pw.Image(
+                  pw.MemoryImage(photoBytes),
+                  width: 120,
+                  height: 120,
+                  fit: pw.BoxFit.cover,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -333,6 +376,39 @@ class VetReportService {
       lines.add('$key: $value');
     }
     return lines;
+  }
+
+  /// Extracts the stored photo path (native file path or base64 data URL)
+  /// from an event's metadata, or null if there's no attachment.
+  String? _photoPath(String? metadataJson) {
+    if (metadataJson == null || metadataJson.isEmpty) return null;
+    try {
+      final map = jsonDecode(metadataJson) as Map<String, dynamic>;
+      return map['photo_path'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Loads raw image bytes for a stored photo [path]. Handles both base64
+  /// data URLs (web) and native file paths; returns null when the file is
+  /// missing or can't be decoded. Mirrors [resolveLocalPhoto].
+  Uint8List? _loadPhotoBytes(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('data:')) {
+      try {
+        return base64Decode(path.substring(path.indexOf(',') + 1));
+      } catch (_) {
+        return null;
+      }
+    }
+    if (kIsWeb) return null;
+    try {
+      final file = File(path);
+      return file.existsSync() ? file.readAsBytesSync() : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   String? _ageString(DateTime dob) {
