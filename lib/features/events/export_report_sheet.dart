@@ -183,7 +183,7 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
   Widget build(BuildContext context) {
     final count = _selectedEvents().length;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
