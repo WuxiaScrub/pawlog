@@ -8,6 +8,7 @@ import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/notification_settings_provider.dart';
 import '../../providers/overdue_provider.dart';
+import '../events/log_history_screen.dart';
 
 const _trendWeeks = 4;
 final _vomitColor = Colors.deepOrange;
@@ -63,7 +64,7 @@ class DashboardScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            _SymptomTrendChart(events: events, now: now),
+            _SymptomTrendChart(events: events, now: now, cat: cat),
           ],
         ),
       ),
@@ -270,15 +271,57 @@ class _AverageIntervalSection extends StatelessWidget {
   }
 }
 
-class _SymptomTrendChart extends StatelessWidget {
-  const _SymptomTrendChart({required this.events, required this.now});
+class _SymptomTrendChart extends StatefulWidget {
+  const _SymptomTrendChart({
+    required this.events,
+    required this.now,
+    required this.cat,
+  });
 
   final List<Event> events;
   final DateTime now;
+  final Cat cat;
+
+  @override
+  State<_SymptomTrendChart> createState() => _SymptomTrendChartState();
+}
+
+class _SymptomTrendChartState extends State<_SymptomTrendChart> {
+  int? _selectedGroupIndex;
+  int? _selectedRodIndex;
+
+  void _onBarTouched(FlTouchEvent event, BarTouchResponse? response) {
+    if (event is! FlTapUpEvent) return;
+    setState(() {
+      if (response?.spot == null) {
+        _selectedGroupIndex = null;
+        _selectedRodIndex = null;
+        return;
+      }
+      final g = response!.spot!.touchedBarGroupIndex;
+      final r = response.spot!.touchedRodDataIndex;
+      if (_selectedGroupIndex == g && _selectedRodIndex == r) {
+        _selectedGroupIndex = null;
+        _selectedRodIndex = null;
+      } else {
+        _selectedGroupIndex = g;
+        _selectedRodIndex = r;
+      }
+    });
+  }
+
+  Color _rodColor(Color base, int groupIndex, int rodIndex) {
+    if (_selectedGroupIndex == null) return base;
+    if (_selectedGroupIndex == groupIndex && _selectedRodIndex == rodIndex) {
+      return base;
+    }
+    return base.withOpacity(0.25);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime(now.year, now.month, now.day);
+    final today =
+        DateTime(widget.now.year, widget.now.month, widget.now.day);
     final bucketStarts = [
       for (var i = _trendWeeks - 1; i >= 0; i--)
         today.subtract(Duration(days: 7 * i + 6)),
@@ -286,7 +329,7 @@ class _SymptomTrendChart extends StatelessWidget {
 
     final vomitCounts = List<int>.filled(_trendWeeks, 0);
     final hairballCounts = List<int>.filled(_trendWeeks, 0);
-    for (final event in events) {
+    for (final event in widget.events) {
       final type = CatEventTypeX.fromStorageKey(event.eventType);
       if (type != CatEventType.vomit && type != CatEventType.hairball) {
         continue;
@@ -320,17 +363,17 @@ class _SymptomTrendChart extends StatelessWidget {
           barRods: [
             BarChartRodData(
               toY: vomitCounts[i].toDouble(),
-              color: _vomitColor,
+              color: _rodColor(_vomitColor, i, 0),
               width: 10,
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(3)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(3)),
             ),
             BarChartRodData(
               toY: hairballCounts[i].toDouble(),
-              color: _hairballColor,
+              color: _rodColor(_hairballColor, i, 1),
               width: 10,
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(3)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(3)),
             ),
           ],
           groupVertically: false,
@@ -395,7 +438,11 @@ class _SymptomTrendChart extends StatelessWidget {
               gridData: const FlGridData(
                   drawVerticalLine: false, horizontalInterval: 1),
               borderData: FlBorderData(show: false),
-              barTouchData: BarTouchData(enabled: false),
+              barTouchData: BarTouchData(
+                enabled: true,
+                handleBuiltInTouches: false,
+                touchCallback: _onBarTouched,
+              ),
             ),
           ),
         ),
@@ -408,6 +455,34 @@ class _SymptomTrendChart extends StatelessWidget {
             _LegendDot(color: _hairballColor, label: 'Hairballs'),
           ],
         ),
+        if (_selectedGroupIndex != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonal(
+              onPressed: () {
+                final type = _selectedRodIndex == 0
+                    ? CatEventType.vomit
+                    : CatEventType.hairball;
+                final start = bucketStarts[_selectedGroupIndex!];
+                final end = start.add(const Duration(days: 6));
+                final fmt = DateFormat.MMMd();
+                final label =
+                    '${fmt.format(start)} – ${fmt.format(end)}';
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => LogHistoryScreen(
+                    cat: widget.cat,
+                    initialEventType: type,
+                    initialDateRange:
+                        DateTimeRange(start: start, end: end),
+                    initialDateLabel: label,
+                  ),
+                ));
+              },
+              child: const Text('View Event Details'),
+            ),
+          ),
+        ],
       ],
     );
   }
