@@ -440,8 +440,10 @@ class _SymptomTrendChartState extends State<_SymptomTrendChart> {
               borderData: FlBorderData(show: false),
               barTouchData: BarTouchData(
                 enabled: true,
-                handleBuiltInTouches: false,
                 touchCallback: _onBarTouched,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) => null,
+                ),
               ),
             ),
           ),
