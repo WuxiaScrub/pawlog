@@ -313,19 +313,41 @@ class _SymptomTrendChart extends StatelessWidget {
         .reduce((a, b) => a > b ? a : b);
     final maxY = (maxCount + 1).toDouble();
 
+    final barGroups = [
+      for (var i = 0; i < _trendWeeks; i++)
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: vomitCounts[i].toDouble(),
+              color: _vomitColor,
+              width: 10,
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(3)),
+            ),
+            BarChartRodData(
+              toY: hairballCounts[i].toDouble(),
+              color: _hairballColor,
+              width: 10,
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(3)),
+            ),
+          ],
+          groupVertically: false,
+          barsSpace: 4,
+        ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           height: 220,
-          child: LineChart(
-            LineChartData(
+          child: BarChart(
+            BarChartData(
               minY: 0,
               maxY: maxY,
-              lineBarsData: [
-                _trendLine(vomitCounts, _vomitColor),
-                _trendLine(hairballCounts, _hairballColor),
-              ],
+              barGroups: barGroups,
               titlesData: FlTitlesData(
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
@@ -373,6 +395,7 @@ class _SymptomTrendChart extends StatelessWidget {
               gridData: const FlGridData(
                   drawVerticalLine: false, horizontalInterval: 1),
               borderData: FlBorderData(show: false),
+              barTouchData: BarTouchData(enabled: false),
             ),
           ),
         ),
@@ -386,19 +409,6 @@ class _SymptomTrendChart extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-
-  LineChartBarData _trendLine(List<int> counts, Color color) {
-    return LineChartBarData(
-      spots: [
-        for (var i = 0; i < counts.length; i++)
-          FlSpot(i.toDouble(), counts[i].toDouble()),
-      ],
-      isCurved: false,
-      color: color,
-      barWidth: 3,
-      dotData: const FlDotData(show: true),
     );
   }
 }
