@@ -118,6 +118,24 @@ extension CatEventTypeX on CatEventType {
     }
   }
 
+  /// Whether this event type is clinically relevant for a vet visit.
+  /// Chores like litter/water/feeding/playtime are excluded from the
+  /// default scope of the exported vet report; observations and treatments
+  /// (vomiting, hairballs, weight, medication, deworming, flea/tick, notes)
+  /// are the useful signal a vet actually wants to see.
+  bool get isHealthRelevant {
+    switch (this) {
+      case CatEventType.litterScoop:
+      case CatEventType.litterChange:
+      case CatEventType.waterChange:
+      case CatEventType.feeding:
+      case CatEventType.playtime:
+        return false;
+      default:
+        return true;
+    }
+  }
+
   static CatEventType fromStorageKey(String key) {
     return CatEventType.values.firstWhere(
       (e) => e.storageKey == key,

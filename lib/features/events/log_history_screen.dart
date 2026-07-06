@@ -6,6 +6,7 @@ import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 import 'event_detail_screen.dart';
+import 'export_report_sheet.dart';
 
 class LogHistoryScreen extends ConsumerStatefulWidget {
   const LogHistoryScreen({
@@ -72,7 +73,28 @@ class _LogHistoryScreenState extends ConsumerState<LogHistoryScreen> {
     final eventsAsync = ref.watch(eventsStreamProvider(widget.cat.id));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Log History')),
+      appBar: AppBar(
+        title: const Text('Log History'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'Export vet report',
+            onPressed: () {
+              final events =
+                  ref.read(eventsStreamProvider(widget.cat.id)).value;
+              if (events == null) return;
+              showExportReportSheet(
+                context,
+                cat: widget.cat,
+                allEvents: events,
+                initialRange: _dateRange,
+                initialRangeLabel: _dateRange != null ? _dateLabel : null,
+                initialType: _typeFilter,
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           _buildFilterRow(context),
