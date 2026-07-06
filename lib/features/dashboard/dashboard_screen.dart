@@ -457,8 +457,18 @@ class _SymptomTrendChartState extends State<_SymptomTrendChart> {
             _LegendDot(color: _hairballColor, label: 'Hairballs'),
           ],
         ),
-        if (_selectedGroupIndex != null) ...[
-          const SizedBox(height: 12),
+        const SizedBox(height: 10),
+        if (_selectedGroupIndex == null)
+          Center(
+            child: Text(
+              'Tap a bar to see details',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          )
+        else
           SizedBox(
             width: double.infinity,
             child: FilledButton.tonal(
@@ -481,10 +491,9 @@ class _SymptomTrendChartState extends State<_SymptomTrendChart> {
                   ),
                 ));
               },
-              child: const Text('View Event Details'),
+              child: Text('View ${(_selectedRodIndex == 0 ? CatEventType.vomit : CatEventType.hairball).label} Details'),
             ),
           ),
-        ],
       ],
     );
   }
