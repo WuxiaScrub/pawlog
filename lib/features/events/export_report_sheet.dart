@@ -183,17 +183,18 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
   Widget build(BuildContext context) {
     final count = _selectedEvents().length;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 4,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 4,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Text('Export vet report',
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
@@ -298,7 +299,8 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
                   : 'Generate PDF ($count ${count == 1 ? 'event' : 'events'})'),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
