@@ -149,7 +149,10 @@ class VetReportService {
       ]);
     }
     if (cat.weightKg != null) {
-      rows.add(['Weight', '${cat.weightKg!.toStringAsFixed(2)} kg']);
+      // The app defaults to pounds for weight input/display, so match that
+      // here rather than defaulting the report to kg.
+      final lbs = cat.weightKg! / 0.453592;
+      rows.add(['Weight', '${lbs.toStringAsFixed(1)} lbs']);
     }
 
     if (rows.isEmpty) return pw.SizedBox();
@@ -365,8 +368,20 @@ class VetReportService {
     } catch (_) {
       return const [];
     }
-    const skip = {'photo_path'};
     final lines = <String>[];
+
+    // Weight events store the user-entered value, the unit they selected
+    // ('lb'/'kg') and an internal kg copy for calculations. Render a single
+    // line in the unit the user selected instead of dumping the raw keys,
+    // which would otherwise surface the kg copy.
+    if (map.containsKey('weight_value') && map['weight_value'] != null) {
+      final unit = (map['weight_unit'] as String?) == 'kg' ? 'kg' : 'lbs';
+      final value = (map['weight_value'] as num).toStringAsFixed(1);
+      lines.add('Weight: $value $unit');
+    }
+
+    // Internal or already-handled keys that shouldn't appear as raw lines.
+    const skip = {'photo_path', 'weight_value', 'weight_unit', 'weight_kg'};
     for (final entry in map.entries) {
       if (skip.contains(entry.key)) continue;
       final value = entry.value;
