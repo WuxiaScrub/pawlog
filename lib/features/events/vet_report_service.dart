@@ -373,9 +373,17 @@ class VetReportService {
       if (value == null || value.toString().isEmpty) continue;
       final raw = entry.key.replaceAll('_', ' ');
       final key = raw.isEmpty ? raw : raw[0].toUpperCase() + raw.substring(1);
-      lines.add('$key: $value');
+      lines.add('$key: ${_readableValue(value)}');
     }
     return lines;
+  }
+
+  /// Renders a metadata value for human reading. Booleans become the
+  /// friendly "Yes"/"No" instead of "true"/"false"; everything else is
+  /// shown as-is.
+  String _readableValue(dynamic value) {
+    if (value is bool) return value ? 'Yes' : 'No';
+    return value.toString();
   }
 
   /// Extracts the stored photo path (native file path or base64 data URL)
