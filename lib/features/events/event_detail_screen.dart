@@ -98,11 +98,21 @@ class EventDetailScreen extends ConsumerWidget {
             for (final entry in metadata.entries)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text('${entry.key.replaceAll('_', ' ')}: ${entry.value}'),
+                child: Text(
+                  '${entry.key.replaceAll('_', ' ')}: '
+                  '${_readableValue(entry.value)}',
+                ),
               ),
           ],
         ],
       ),
     );
+  }
+
+  /// Renders a metadata value for display. Booleans become the friendly
+  /// "Yes"/"No" instead of "true"/"false"; everything else is shown as-is.
+  String _readableValue(dynamic value) {
+    if (value is bool) return value ? 'Yes' : 'No';
+    return value.toString();
   }
 }
