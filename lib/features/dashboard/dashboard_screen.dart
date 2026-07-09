@@ -103,7 +103,7 @@ String _intervalLabel(Duration avg) {
   final minutes = avg.inMinutes;
   if (minutes < 90) return 'every ${minutes} min';
   final hours = avg.inHours;
-  if (hours < 36) return 'every ${hours} h';
+  if (hours < 72) return 'every ${hours} h';
   final days = avg.inDays;
   if (days < 14) return 'every ${days} d';
   if (days < 90) return 'every ${(days / 7).floor()} wk';
