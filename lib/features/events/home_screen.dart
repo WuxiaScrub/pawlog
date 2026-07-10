@@ -7,8 +7,10 @@ import '../../models/event_type.dart';
 import '../../providers/cats_provider.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/feeding_provider.dart';
+import '../../providers/voice_provider.dart';
 import '../cats/cat_avatar.dart';
 import 'log_event_sheet.dart';
+import 'voice_log_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key, required this.cat});
@@ -33,13 +35,24 @@ class HomeScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Voice logging is coming in a future update — use the buttons below for now.'),
+          final keyAsync = ref.read(apiKeyProvider);
+          final key = keyAsync.valueOrNull;
+          if (key == null || key.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Set up your Claude API key in Settings to use voice logging.'),
+              ),
+            );
+            return;
+          }
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => VoiceLogScreen(catId: cat.id),
             ),
           );
         },
-        tooltip: 'Voice log (coming soon)',
+        tooltip: 'Voice log',
         child: const Icon(Icons.mic),
       ),
       body: ListView(
