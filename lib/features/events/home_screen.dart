@@ -36,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final keyAsync = ref.read(apiKeyProvider);
-          final key = keyAsync.valueOrNull;
+          final key = keyAsync.asData?.value;
           if (key == null || key.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
