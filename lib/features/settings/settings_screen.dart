@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database.dart';
 import '../../models/event_type.dart';
 import '../../providers/notification_settings_provider.dart';
+import '../../providers/voice_provider.dart';
 import '../cats/cat_profile_setup_screen.dart';
 import '../feeding/feeding_schedule_setup_screen.dart';
 
@@ -43,6 +44,15 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'Voice logging',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          _ApiKeyTile(),
           const Divider(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -155,6 +165,83 @@ class _ThresholdTile extends StatelessWidget {
               }
               final hours = useDays ? value * 24 : value;
               Navigator.of(ctx).pop(hours);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApiKeyTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final keyAsync = ref.watch(apiKeyProvider);
+    final hasKey =
+        keyAsync.whenOrNull(data: (k) => k != null && k.isNotEmpty) ?? false;
+
+    return ListTile(
+      leading: const Icon(Icons.key),
+      title: const Text('Claude API Key'),
+      subtitle: Text(hasKey ? 'Configured' : 'Required for voice logging'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _showKeyDialog(context, ref, hasKey),
+    );
+  }
+
+  void _showKeyDialog(BuildContext context, WidgetRef ref, bool hasKey) {
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Claude API Key'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: InputDecoration(
+                hintText: hasKey ? 'Enter new key to replace' : 'sk-ant-...',
+                border: const OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            if (hasKey)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'A key is already saved. Enter a new one to replace it.',
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          if (hasKey)
+            TextButton(
+              onPressed: () async {
+                await deleteApiKey();
+                ref.invalidate(apiKeyProvider);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: Text(
+                'Remove',
+                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+              ),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final key = controller.text.trim();
+              if (key.isEmpty) return;
+              await saveApiKey(key);
+              ref.invalidate(apiKeyProvider);
+              if (ctx.mounted) Navigator.of(ctx).pop();
             },
             child: const Text('Save'),
           ),

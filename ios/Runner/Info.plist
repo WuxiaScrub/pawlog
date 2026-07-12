@@ -28,8 +28,12 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>PawLog uses the camera to take a profile photo for your cat.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PawLog uses the microphone for voice logging of cat care events.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>PawLog uses your photo library to choose a profile photo for your cat.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>PawLog uses speech recognition to convert your voice into text for logging.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
