@@ -18,7 +18,7 @@ class VoiceLogScreen extends ConsumerStatefulWidget {
 
 class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
     with SingleTickerProviderStateMixin {
-  _Phase _phase = _Phase.ready;
+  _Phase _phase = _Phase.listening;
   String _partialTranscript = '';
   String _finalTranscript = '';
   String? _errorMessage;
@@ -34,6 +34,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startListening());
   }
 
   @override
@@ -158,7 +159,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
           ];
         });
       } else {
-        setState(() => _phase = _Phase.ready);
+        if (mounted) Navigator.of(context).pop();
       }
     });
   }
@@ -222,7 +223,9 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
   void _removeEvent(int index) {
     setState(() {
       _events.removeAt(index);
-      if (_events.isEmpty) _phase = _Phase.ready;
+      if (_events.isEmpty && mounted) {
+        Navigator.of(context).pop();
+      }
     });
   }
 
@@ -243,19 +246,14 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
   }
 
   Widget _buildReadyPhase() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startListening());
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.mic, size: 64, color: Theme.of(context).colorScheme.primary),
+          const CircularProgressIndicator(),
           const SizedBox(height: 16),
-          const Text('Tap to start recording'),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: _startListening,
-            icon: const Icon(Icons.mic),
-            label: const Text('Start'),
-          ),
+          const Text('Starting microphone...'),
         ],
       ),
     );
@@ -310,7 +308,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
                 await ref.read(sttServiceProvider).stop();
                 _pulseController.stop();
                 _pulseController.reset();
-                if (mounted) setState(() => _phase = _Phase.ready);
+                if (mounted) Navigator.of(context).pop();
               },
               child: const Text('Cancel'),
             ),
@@ -387,10 +385,10 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
                   child: TextButton(
                     onPressed: _saving
                         ? null
-                        : () => setState(() {
+                        : () {
                               _events.clear();
-                              _phase = _Phase.ready;
-                            }),
+                              Navigator.of(context).pop();
+                            },
                     child: const Text('Cancel'),
                   ),
                 ),
@@ -440,7 +438,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: () => setState(() => _phase = _Phase.ready),
+                  onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Back'),
                 ),
                 if (_finalTranscript.isNotEmpty) ...[
