@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/claude_service.dart';
 import '../../core/stt_service.dart';
+import '../../core/transcript_matcher.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/voice_provider.dart';
@@ -95,8 +96,25 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
     );
   }
 
+  static const _matcher = TranscriptMatcher();
+
   Future<void> _sendToClaude(String transcript) async {
     setState(() => _phase = _Phase.processing);
+
+    final localMatch = _matcher.tryMatch(transcript);
+    if (localMatch != null) {
+      setState(() {
+        _phase = _Phase.confirm;
+        _events = [
+          _EditableEvent(
+            eventType: localMatch.eventType,
+            notes: localMatch.notes,
+            metadata: Map<String, dynamic>.from(localMatch.metadata),
+          ),
+        ];
+      });
+      return;
+    }
 
     final claude = ref.read(claudeServiceProvider);
     if (claude == null) {
