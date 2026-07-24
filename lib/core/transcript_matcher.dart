@@ -15,19 +15,25 @@ class MatchResult {
 class TranscriptMatcher {
   const TranscriptMatcher();
 
+  // "litter" / "liter" / "litre" are homophones — STT often picks the wrong one.
+  static const _litter = r'(litt?er|litre)';
+
+  // "flea" / "flee" are homophones.
+  static const _flea = r'(flea|flee)';
+
   static final _rules = <_EventRule>[
     _EventRule(CatEventType.litterScoop, [
-      RegExp(r'scoop(ed|s|ing)?\s+(the\s+)?litter'),
-      RegExp(r'litter\s+(was\s+|is\s+)?scoop(ed|s)'),
+      RegExp('scoop(ed|s|ing)?\\s+(the\\s+)?$_litter'),
+      RegExp('$_litter\\s+(was\\s+|is\\s+)?scoop(ed|s)'),
     ]),
     _EventRule(CatEventType.litterChange, [
       RegExp(
-          r'chang(ed|e|ing)\s+(the\s+)?(entire\s+|whole\s+|all\s+(the\s+)?)?litter'),
-      RegExp(r'litter\s+(was\s+)?chang(ed|e)'),
-      RegExp(r'replac(ed|e|ing)\s+(the\s+)?litter'),
-      RegExp(r'(fresh|new)\s+litter'),
-      RegExp(r'swap(ped|ping)?\s+(the\s+)?litter'),
-      RegExp(r'dump(ed|ing)?\s+(out\s+)?(the\s+)?(old\s+)?litter'),
+          'chang(ed|e|ing)\\s+(the\\s+)?(entire\\s+|whole\\s+|all\\s+(the\\s+)?)?$_litter'),
+      RegExp('$_litter\\s+(was\\s+)?chang(ed|e)'),
+      RegExp('replac(ed|e|ing)\\s+(the\\s+)?$_litter'),
+      RegExp('(fresh|new)\\s+$_litter'),
+      RegExp('swap(ped|ping)?\\s+(the\\s+)?$_litter'),
+      RegExp('dump(ed|ing)?\\s+(out\\s+)?(the\\s+)?(old\\s+)?$_litter'),
     ]),
     _EventRule(CatEventType.waterChange, [
       RegExp(r"chang(ed|e|ing)\s+(the\s+)?(cat'?s?\s+)?water"),
@@ -38,7 +44,7 @@ class TranscriptMatcher {
           r'fill(ed|ing)?\s+(up\s+)?(the\s+)?water\s*(bowl|dish|fountain)'),
     ]),
     _EventRule(CatEventType.vomit, [
-      RegExp(r'threw\s+up'),
+      RegExp(r'(threw|through)\s+up'),
       RegExp(r'throw(ing|s)?\s+up'),
       RegExp(r'vomit(ed|ing|s)?'),
       RegExp(r'puke[ds]?|puking'),
@@ -55,12 +61,12 @@ class TranscriptMatcher {
     ]),
     _EventRule(CatEventType.fleaTreatment, [
       RegExp(
-          r'flea\s*(treatment|medicine|meds|drops|medication|collar|spray)'),
+          '$_flea\\s*(treatment|medicine|meds|drops|medication|collar|spray)'),
       RegExp(
           r'tick\s*(treatment|medicine|meds|drops|medication|collar|spray)'),
-      RegExp(r'flea\s+and\s+tick'),
-      RegExp(r'applied\s+(the\s+)?flea'),
-      RegExp(r'anti\s*-?\s*(flea|tick)'),
+      RegExp('$_flea\\s+and\\s+tick'),
+      RegExp('applied\\s+(the\\s+)?$_flea'),
+      RegExp('anti\\s*-?\\s*($_flea|tick)'),
     ]),
     _EventRule(CatEventType.feeding, [
       RegExp(r'\bfed\b'),
