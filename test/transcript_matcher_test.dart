@@ -295,6 +295,48 @@ void main() {
     });
   });
 
+  group('STT transcription errors', () {
+    test('matches "scoop liter" (litter→liter)', () {
+      final r = matcher.tryMatch('scoop liter');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.litterScoop);
+    });
+
+    test('matches "changed the litre" (litter→litre)', () {
+      final r = matcher.tryMatch('changed the litre');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.litterChange);
+    });
+
+    test('matches "fresh liter" (litter→liter)', () {
+      final r = matcher.tryMatch('fresh liter');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.litterChange);
+    });
+
+    test('matches "through up" (threw→through)', () {
+      final r = matcher.tryMatch('the cat through up');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.vomit);
+    });
+
+    test('matches "flee treatment" (flea→flee)', () {
+      final r = matcher.tryMatch('applied flee treatment');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.fleaTreatment);
+    });
+
+    test('matches "flee and tick" (flea→flee)', () {
+      final r = matcher.tryMatch('did the flee and tick');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.fleaTreatment);
+    });
+
+    test('negation still works with misspelling', () {
+      expect(matcher.tryMatch("didn't scoop the liter"), isNull);
+    });
+  });
+
   group('negation detection', () {
     test('rejects "forgot to scoop the litter"', () {
       expect(matcher.tryMatch('forgot to scoop the litter'), isNull);
