@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/database.dart';
+import '../core/sync_service.dart';
 import '../models/event_type.dart';
 import 'database_provider.dart';
+import 'sync_provider.dart';
 
 const _uuid = Uuid();
 
@@ -34,12 +36,9 @@ const Set<CatEventType> defaultEnabledTypes = {
 };
 
 /// Event types whose default threshold gives a week or more of runway
-/// (litterChange, deworming, fleaTreatment), so seeding a "last done"
-/// baseline at cat registration won't fire a false-positive overdue
-/// alert before the user has had a chance to log a real event. The
-/// short-cadence chores (litterScoop, waterChange, both 24h) are
-/// deliberately excluded — seeding those would almost always trigger a
-/// spurious reminder within a day of setup.
+/// so seeding a "last done" baseline at cat registration won't fire a
+/// false-positive overdue alert before the user has had a chance to log
+/// a real event.
 const Set<CatEventType> seedBaselineAtRegistration = {
   CatEventType.litterChange,
   CatEventType.deworming,
@@ -82,22 +81,19 @@ final effectiveSettingsProvider =
 });
 
 class NotificationSettingsRepository {
-  NotificationSettingsRepository(this._db);
+  NotificationSettingsRepository(this._db, this._sync);
   final AppDatabase _db;
+  final SyncService _sync;
 
   Future<void> upsert({
     required CatEventType eventType,
     required int thresholdHours,
     required bool enabled,
-  }) {
-    // A single atomic "INSERT ... ON CONFLICT DO UPDATE", relying on the
-    // unique index on event_type, so two near-simultaneous edits (e.g.
-    // toggling the enable switch and saving the threshold dialog right
-    // after) can't race a separate read-then-write and leave a stale
-    // threshold to resurface — the database itself serializes the conflict.
-    return _db.into(_db.notificationSettings).insert(
+  }) async {
+    final id = _uuid.v4();
+    await _db.into(_db.notificationSettings).insert(
           NotificationSettingsCompanion.insert(
-            id: _uuid.v4(),
+            id: id,
             eventType: eventType.storageKey,
             thresholdHours: thresholdHours,
             enabled: Value(enabled),
@@ -110,10 +106,28 @@ class NotificationSettingsRepository {
             target: [_db.notificationSettings.eventType],
           ),
         );
+    final setting = await (_db.select(_db.notificationSettings)
+          ..where((t) => t.eventType.equals(eventType.storageKey)))
+        .getSingle();
+    await _sync.enqueue(
+      tableName: 'notification_settings',
+      recordId: setting.id,
+      operation: 'update',
+      payload: {
+        'id': setting.id,
+        'event_type': setting.eventType,
+        'threshold_hours': setting.thresholdHours,
+        'enabled': setting.enabled,
+      },
+    );
+    _sync.triggerSync();
   }
 }
 
 final notificationSettingsRepositoryProvider =
     Provider<NotificationSettingsRepository>((ref) {
-  return NotificationSettingsRepository(ref.watch(databaseProvider));
+  return NotificationSettingsRepository(
+    ref.watch(databaseProvider),
+    ref.watch(syncServiceProvider),
+  );
 });

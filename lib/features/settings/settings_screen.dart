@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database.dart';
+import '../../core/supabase_client.dart';
 import '../../models/event_type.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/notification_settings_provider.dart';
+import '../../providers/sync_provider.dart';
 import '../../providers/voice_provider.dart';
+import '../auth/auth_screen.dart';
 import '../cats/cat_profile_setup_screen.dart';
 import '../feeding/feeding_schedule_setup_screen.dart';
 
@@ -22,6 +26,8 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          const _AccountSection(),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.pets),
             title: Text(cat.name),
@@ -86,6 +92,87 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+
+    if (user == null) {
+      return ListTile(
+        leading: const Icon(Icons.cloud_off),
+        title: const Text('Sign in'),
+        subtitle: const Text('Back up and sync your data'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.cloud_done),
+          title: Text(user.email ?? 'Signed in'),
+          subtitle: const Text('Data syncing enabled'),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  ref.read(syncServiceProvider).triggerSync();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sync started'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.sync, size: 18),
+                label: const Text('Sync now'),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Sign out?'),
+                      content: const Text(
+                        'Your data stays on this device. '
+                        'New changes won\'t sync until you sign back in.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Sign out'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    await supabase.auth.signOut();
+                  }
+                },
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Sign out'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ThresholdTile extends StatelessWidget {
   const _ThresholdTile({
     required this.eventType,
@@ -97,10 +184,6 @@ class _ThresholdTile extends StatelessWidget {
   final EffectiveSetting setting;
   final void Function(bool enabled, int thresholdHours) onChanged;
 
-  // The tile always renders straight from `setting` — the persisted source
-  // of truth — rather than caching a local copy. A local copy would only
-  // be seeded once (via initState) and could go stale relative to the
-  // provider the moment a save round-trips through the database.
   int get _hours => setting.thresholdHours == 0 ? 24 : setting.thresholdHours;
 
   bool get _useDays => _hours > 48;
