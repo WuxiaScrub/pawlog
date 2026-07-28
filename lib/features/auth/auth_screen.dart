@@ -8,7 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/supabase_client.dart';
 
 const _webClientId =
-    '91727702481-d5e8sjm6uhfoaaegm3qp6aksc9bcturn.apps.googleusercontent.com';
+    '91727702481-8n5ajp9aqs9kekphcikmaatkr57avftr.apps.googleusercontent.com';
 const _iosClientId =
     '91727702481-d5e8sjm6uhfoaaegm3qp6aksc9bcturn.apps.googleusercontent.com';
 
