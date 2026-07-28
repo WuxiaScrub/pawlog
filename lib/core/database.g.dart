@@ -68,17 +68,18 @@ class $CatsTable extends Cats with TableInfo<$CatsTable, Cat> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _quickLogTypesJsonMeta =
-      const VerificationMeta('quickLogTypesJson');
+  static const VerificationMeta _quickLogTypesJsonMeta = const VerificationMeta(
+    'quickLogTypesJson',
+  );
   @override
   late final GeneratedColumn<String> quickLogTypesJson =
       GeneratedColumn<String>(
-    'quick_log_types_json',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
+        'quick_log_types_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _screeningDoneMeta = const VerificationMeta(
     'screeningDone',
   );
@@ -330,8 +331,9 @@ class Cat extends DataClass implements Insertable<Cat> {
       dateOfBirth: serializer.fromJson<DateTime?>(json['dateOfBirth']),
       weightKg: serializer.fromJson<double?>(json['weightKg']),
       photoPath: serializer.fromJson<String?>(json['photoPath']),
-      quickLogTypesJson:
-          serializer.fromJson<String?>(json['quickLogTypesJson']),
+      quickLogTypesJson: serializer.fromJson<String?>(
+        json['quickLogTypesJson'],
+      ),
       screeningDone: serializer.fromJson<bool>(json['screeningDone']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -493,8 +495,7 @@ class CatsCompanion extends UpdateCompanion<Cat> {
       if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
       if (weightKg != null) 'weight_kg': weightKg,
       if (photoPath != null) 'photo_path': photoPath,
-      if (quickLogTypesJson != null)
-        'quick_log_types_json': quickLogTypesJson,
+      if (quickLogTypesJson != null) 'quick_log_types_json': quickLogTypesJson,
       if (screeningDone != null) 'screening_done': screeningDone,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -1071,6 +1072,7 @@ class $NotificationSettingsTable extends NotificationSettings
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _thresholdHoursMeta = const VerificationMeta(
     'thresholdHours',
@@ -1795,9 +1797,7 @@ class $FeedingSlotsTable extends FeedingSlots
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _minuteMeta = const VerificationMeta(
-    'minute',
-  );
+  static const VerificationMeta _minuteMeta = const VerificationMeta('minute');
   @override
   late final GeneratedColumn<int> minute = GeneratedColumn<int>(
     'minute',
@@ -1847,10 +1847,7 @@ class $FeedingSlotsTable extends FeedingSlots
     if (data.containsKey('schedule_id')) {
       context.handle(
         _scheduleIdMeta,
-        scheduleId.isAcceptableOrUnknown(
-          data['schedule_id']!,
-          _scheduleIdMeta,
-        ),
+        scheduleId.isAcceptableOrUnknown(data['schedule_id']!, _scheduleIdMeta),
       );
     } else if (isInserting) {
       context.missing(_scheduleIdMeta);
@@ -2198,6 +2195,409 @@ class FeedingSlotsCompanion extends UpdateCompanion<FeedingSlot> {
   }
 }
 
+class $SyncQueueTable extends SyncQueue
+    with TableInfo<$SyncQueueTable, SyncQueueItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncQueueTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _targetTableMeta = const VerificationMeta(
+    'targetTable',
+  );
+  @override
+  late final GeneratedColumn<String> targetTable = GeneratedColumn<String>(
+    'target_table',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _operationMeta = const VerificationMeta(
+    'operation',
+  );
+  @override
+  late final GeneratedColumn<String> operation = GeneratedColumn<String>(
+    'operation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    targetTable,
+    recordId,
+    operation,
+    payload,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_queue';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncQueueItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('target_table')) {
+      context.handle(
+        _targetTableMeta,
+        targetTable.isAcceptableOrUnknown(
+          data['target_table']!,
+          _targetTableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetTableMeta);
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('operation')) {
+      context.handle(
+        _operationMeta,
+        operation.isAcceptableOrUnknown(data['operation']!, _operationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_operationMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncQueueItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncQueueItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      targetTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_table'],
+      )!,
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      operation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncQueueTable createAlias(String alias) {
+    return $SyncQueueTable(attachedDatabase, alias);
+  }
+}
+
+class SyncQueueItem extends DataClass implements Insertable<SyncQueueItem> {
+  final int id;
+  final String targetTable;
+  final String recordId;
+  final String operation;
+  final String payload;
+  final DateTime createdAt;
+  const SyncQueueItem({
+    required this.id,
+    required this.targetTable,
+    required this.recordId,
+    required this.operation,
+    required this.payload,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['target_table'] = Variable<String>(targetTable);
+    map['record_id'] = Variable<String>(recordId);
+    map['operation'] = Variable<String>(operation);
+    map['payload'] = Variable<String>(payload);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  SyncQueueCompanion toCompanion(bool nullToAbsent) {
+    return SyncQueueCompanion(
+      id: Value(id),
+      targetTable: Value(targetTable),
+      recordId: Value(recordId),
+      operation: Value(operation),
+      payload: Value(payload),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory SyncQueueItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncQueueItem(
+      id: serializer.fromJson<int>(json['id']),
+      targetTable: serializer.fromJson<String>(json['targetTable']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      operation: serializer.fromJson<String>(json['operation']),
+      payload: serializer.fromJson<String>(json['payload']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'targetTable': serializer.toJson<String>(targetTable),
+      'recordId': serializer.toJson<String>(recordId),
+      'operation': serializer.toJson<String>(operation),
+      'payload': serializer.toJson<String>(payload),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  SyncQueueItem copyWith({
+    int? id,
+    String? targetTable,
+    String? recordId,
+    String? operation,
+    String? payload,
+    DateTime? createdAt,
+  }) => SyncQueueItem(
+    id: id ?? this.id,
+    targetTable: targetTable ?? this.targetTable,
+    recordId: recordId ?? this.recordId,
+    operation: operation ?? this.operation,
+    payload: payload ?? this.payload,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  SyncQueueItem copyWithCompanion(SyncQueueCompanion data) {
+    return SyncQueueItem(
+      id: data.id.present ? data.id.value : this.id,
+      targetTable: data.targetTable.present
+          ? data.targetTable.value
+          : this.targetTable,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      operation: data.operation.present ? data.operation.value : this.operation,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncQueueItem(')
+          ..write('id: $id, ')
+          ..write('targetTable: $targetTable, ')
+          ..write('recordId: $recordId, ')
+          ..write('operation: $operation, ')
+          ..write('payload: $payload, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, targetTable, recordId, operation, payload, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncQueueItem &&
+          other.id == this.id &&
+          other.targetTable == this.targetTable &&
+          other.recordId == this.recordId &&
+          other.operation == this.operation &&
+          other.payload == this.payload &&
+          other.createdAt == this.createdAt);
+}
+
+class SyncQueueCompanion extends UpdateCompanion<SyncQueueItem> {
+  final Value<int> id;
+  final Value<String> targetTable;
+  final Value<String> recordId;
+  final Value<String> operation;
+  final Value<String> payload;
+  final Value<DateTime> createdAt;
+  const SyncQueueCompanion({
+    this.id = const Value.absent(),
+    this.targetTable = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.operation = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  SyncQueueCompanion.insert({
+    this.id = const Value.absent(),
+    required String targetTable,
+    required String recordId,
+    required String operation,
+    required String payload,
+    this.createdAt = const Value.absent(),
+  }) : targetTable = Value(targetTable),
+       recordId = Value(recordId),
+       operation = Value(operation),
+       payload = Value(payload);
+  static Insertable<SyncQueueItem> custom({
+    Expression<int>? id,
+    Expression<String>? targetTable,
+    Expression<String>? recordId,
+    Expression<String>? operation,
+    Expression<String>? payload,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (targetTable != null) 'target_table': targetTable,
+      if (recordId != null) 'record_id': recordId,
+      if (operation != null) 'operation': operation,
+      if (payload != null) 'payload': payload,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  SyncQueueCompanion copyWith({
+    Value<int>? id,
+    Value<String>? targetTable,
+    Value<String>? recordId,
+    Value<String>? operation,
+    Value<String>? payload,
+    Value<DateTime>? createdAt,
+  }) {
+    return SyncQueueCompanion(
+      id: id ?? this.id,
+      targetTable: targetTable ?? this.targetTable,
+      recordId: recordId ?? this.recordId,
+      operation: operation ?? this.operation,
+      payload: payload ?? this.payload,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (targetTable.present) {
+      map['target_table'] = Variable<String>(targetTable.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (operation.present) {
+      map['operation'] = Variable<String>(operation.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncQueueCompanion(')
+          ..write('id: $id, ')
+          ..write('targetTable: $targetTable, ')
+          ..write('recordId: $recordId, ')
+          ..write('operation: $operation, ')
+          ..write('payload: $payload, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2209,6 +2609,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $FeedingSlotsTable feedingSlots = $FeedingSlotsTable(this);
+  late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2219,6 +2620,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     notificationSettings,
     feedingSchedules,
     feedingSlots,
+    syncQueue,
   ];
 }
 
@@ -2230,6 +2632,8 @@ typedef $$CatsTableCreateCompanionBuilder =
       Value<DateTime?> dateOfBirth,
       Value<double?> weightKg,
       Value<String?> photoPath,
+      Value<String?> quickLogTypesJson,
+      Value<bool> screeningDone,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -2241,6 +2645,8 @@ typedef $$CatsTableUpdateCompanionBuilder =
       Value<DateTime?> dateOfBirth,
       Value<double?> weightKg,
       Value<String?> photoPath,
+      Value<String?> quickLogTypesJson,
+      Value<bool> screeningDone,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -2263,6 +2669,44 @@ final class $$CatsTableReferences
     ).filter((f) => f.catId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_eventsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$FeedingSchedulesTable, List<FeedingSchedule>>
+  _feedingSchedulesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.feedingSchedules,
+    aliasName: 'cats__id__feeding_schedules__cat_id',
+  );
+
+  $$FeedingSchedulesTableProcessedTableManager get feedingSchedulesRefs {
+    final manager = $$FeedingSchedulesTableTableManager(
+      $_db,
+      $_db.feedingSchedules,
+    ).filter((f) => f.catId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _feedingSchedulesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$FeedingSlotsTable, List<FeedingSlot>>
+  _feedingSlotsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.feedingSlots,
+    aliasName: 'cats__id__feeding_slots__cat_id',
+  );
+
+  $$FeedingSlotsTableProcessedTableManager get feedingSlotsRefs {
+    final manager = $$FeedingSlotsTableTableManager(
+      $_db,
+      $_db.feedingSlots,
+    ).filter((f) => f.catId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_feedingSlotsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2302,6 +2746,21 @@ class $$CatsTableFilterComposer extends Composer<_$AppDatabase, $CatsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quickLogTypesJson => $composableBuilder(
+    column: $table.quickLogTypesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get screeningDone => $composableBuilder(
+    column: $table.screeningDone,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -2323,6 +2782,56 @@ class $$CatsTableFilterComposer extends Composer<_$AppDatabase, $CatsTable> {
           }) => $$EventsTableFilterComposer(
             $db: $db,
             $table: $db.events,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> feedingSchedulesRefs(
+    Expression<bool> Function($$FeedingSchedulesTableFilterComposer f) f,
+  ) {
+    final $$FeedingSchedulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.feedingSchedules,
+      getReferencedColumn: (t) => t.catId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSchedulesTableFilterComposer(
+            $db: $db,
+            $table: $db.feedingSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> feedingSlotsRefs(
+    Expression<bool> Function($$FeedingSlotsTableFilterComposer f) f,
+  ) {
+    final $$FeedingSlotsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.feedingSlots,
+      getReferencedColumn: (t) => t.catId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSlotsTableFilterComposer(
+            $db: $db,
+            $table: $db.feedingSlots,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2366,6 +2875,21 @@ class $$CatsTableOrderingComposer extends Composer<_$AppDatabase, $CatsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quickLogTypesJson => $composableBuilder(
+    column: $table.quickLogTypesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get screeningDone => $composableBuilder(
+    column: $table.screeningDone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2398,6 +2922,19 @@ class $$CatsTableAnnotationComposer
   GeneratedColumn<double> get weightKg =>
       $composableBuilder(column: $table.weightKg, builder: (column) => column);
 
+  GeneratedColumn<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => column);
+
+  GeneratedColumn<String> get quickLogTypesJson => $composableBuilder(
+    column: $table.quickLogTypesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get screeningDone => $composableBuilder(
+    column: $table.screeningDone,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -2425,6 +2962,56 @@ class $$CatsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> feedingSchedulesRefs<T extends Object>(
+    Expression<T> Function($$FeedingSchedulesTableAnnotationComposer a) f,
+  ) {
+    final $$FeedingSchedulesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.feedingSchedules,
+      getReferencedColumn: (t) => t.catId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSchedulesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.feedingSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> feedingSlotsRefs<T extends Object>(
+    Expression<T> Function($$FeedingSlotsTableAnnotationComposer a) f,
+  ) {
+    final $$FeedingSlotsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.feedingSlots,
+      getReferencedColumn: (t) => t.catId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSlotsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.feedingSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CatsTableTableManager
@@ -2440,7 +3027,11 @@ class $$CatsTableTableManager
           $$CatsTableUpdateCompanionBuilder,
           (Cat, $$CatsTableReferences),
           Cat,
-          PrefetchHooks Function({bool eventsRefs})
+          PrefetchHooks Function({
+            bool eventsRefs,
+            bool feedingSchedulesRefs,
+            bool feedingSlotsRefs,
+          })
         > {
   $$CatsTableTableManager(_$AppDatabase db, $CatsTable table)
     : super(
@@ -2461,6 +3052,8 @@ class $$CatsTableTableManager
                 Value<DateTime?> dateOfBirth = const Value.absent(),
                 Value<double?> weightKg = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
+                Value<String?> quickLogTypesJson = const Value.absent(),
+                Value<bool> screeningDone = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatsCompanion(
@@ -2470,6 +3063,8 @@ class $$CatsTableTableManager
                 dateOfBirth: dateOfBirth,
                 weightKg: weightKg,
                 photoPath: photoPath,
+                quickLogTypesJson: quickLogTypesJson,
+                screeningDone: screeningDone,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -2481,6 +3076,8 @@ class $$CatsTableTableManager
                 Value<DateTime?> dateOfBirth = const Value.absent(),
                 Value<double?> weightKg = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
+                Value<String?> quickLogTypesJson = const Value.absent(),
+                Value<bool> screeningDone = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CatsCompanion.insert(
@@ -2490,6 +3087,8 @@ class $$CatsTableTableManager
                 dateOfBirth: dateOfBirth,
                 weightKg: weightKg,
                 photoPath: photoPath,
+                quickLogTypesJson: quickLogTypesJson,
+                screeningDone: screeningDone,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -2499,29 +3098,75 @@ class $$CatsTableTableManager
                     (e.readTable(table), $$CatsTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({eventsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (eventsRefs) db.events],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (eventsRefs)
-                    await $_getPrefetchedData<Cat, $CatsTable, Event>(
-                      currentTable: table,
-                      referencedTable: $$CatsTableReferences._eventsRefsTable(
-                        db,
-                      ),
-                      managerFromTypedResult: (p0) =>
-                          $$CatsTableReferences(db, table, p0).eventsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.catId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({
+                eventsRefs = false,
+                feedingSchedulesRefs = false,
+                feedingSlotsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (eventsRefs) db.events,
+                    if (feedingSchedulesRefs) db.feedingSchedules,
+                    if (feedingSlotsRefs) db.feedingSlots,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (eventsRefs)
+                        await $_getPrefetchedData<Cat, $CatsTable, Event>(
+                          currentTable: table,
+                          referencedTable: $$CatsTableReferences
+                              ._eventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CatsTableReferences(db, table, p0).eventsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.catId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (feedingSchedulesRefs)
+                        await $_getPrefetchedData<
+                          Cat,
+                          $CatsTable,
+                          FeedingSchedule
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CatsTableReferences
+                              ._feedingSchedulesRefsTable(db),
+                          managerFromTypedResult: (p0) => $$CatsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).feedingSchedulesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.catId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (feedingSlotsRefs)
+                        await $_getPrefetchedData<Cat, $CatsTable, FeedingSlot>(
+                          currentTable: table,
+                          referencedTable: $$CatsTableReferences
+                              ._feedingSlotsRefsTable(db),
+                          managerFromTypedResult: (p0) => $$CatsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).feedingSlotsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.catId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -2538,7 +3183,11 @@ typedef $$CatsTableProcessedTableManager =
       $$CatsTableUpdateCompanionBuilder,
       (Cat, $$CatsTableReferences),
       Cat,
-      PrefetchHooks Function({bool eventsRefs})
+      PrefetchHooks Function({
+        bool eventsRefs,
+        bool feedingSchedulesRefs,
+        bool feedingSlotsRefs,
+      })
     >;
 typedef $$EventsTableCreateCompanionBuilder =
     EventsCompanion Function({
@@ -3094,6 +3743,1079 @@ typedef $$NotificationSettingsTableProcessedTableManager =
       NotificationSetting,
       PrefetchHooks Function()
     >;
+typedef $$FeedingSchedulesTableCreateCompanionBuilder =
+    FeedingSchedulesCompanion Function({
+      required String id,
+      required String catId,
+      required int timesPerDay,
+      Value<bool> enabled,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$FeedingSchedulesTableUpdateCompanionBuilder =
+    FeedingSchedulesCompanion Function({
+      Value<String> id,
+      Value<String> catId,
+      Value<int> timesPerDay,
+      Value<bool> enabled,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$FeedingSchedulesTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $FeedingSchedulesTable, FeedingSchedule> {
+  $$FeedingSchedulesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CatsTable _catIdTable(_$AppDatabase db) =>
+      db.cats.createAlias('feeding_schedules__cat_id__cats__id');
+
+  $$CatsTableProcessedTableManager get catId {
+    final $_column = $_itemColumn<String>('cat_id')!;
+
+    final manager = $$CatsTableTableManager(
+      $_db,
+      $_db.cats,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_catIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$FeedingSlotsTable, List<FeedingSlot>>
+  _feedingSlotsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.feedingSlots,
+    aliasName: 'feeding_schedules__id__feeding_slots__schedule_id',
+  );
+
+  $$FeedingSlotsTableProcessedTableManager get feedingSlotsRefs {
+    final manager = $$FeedingSlotsTableTableManager(
+      $_db,
+      $_db.feedingSlots,
+    ).filter((f) => f.scheduleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_feedingSlotsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$FeedingSchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $FeedingSchedulesTable> {
+  $$FeedingSchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timesPerDay => $composableBuilder(
+    column: $table.timesPerDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CatsTableFilterComposer get catId {
+    final $$CatsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableFilterComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> feedingSlotsRefs(
+    Expression<bool> Function($$FeedingSlotsTableFilterComposer f) f,
+  ) {
+    final $$FeedingSlotsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.feedingSlots,
+      getReferencedColumn: (t) => t.scheduleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSlotsTableFilterComposer(
+            $db: $db,
+            $table: $db.feedingSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$FeedingSchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FeedingSchedulesTable> {
+  $$FeedingSchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timesPerDay => $composableBuilder(
+    column: $table.timesPerDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CatsTableOrderingComposer get catId {
+    final $$CatsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableOrderingComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FeedingSchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FeedingSchedulesTable> {
+  $$FeedingSchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get timesPerDay => $composableBuilder(
+    column: $table.timesPerDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$CatsTableAnnotationComposer get catId {
+    final $$CatsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> feedingSlotsRefs<T extends Object>(
+    Expression<T> Function($$FeedingSlotsTableAnnotationComposer a) f,
+  ) {
+    final $$FeedingSlotsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.feedingSlots,
+      getReferencedColumn: (t) => t.scheduleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSlotsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.feedingSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$FeedingSchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FeedingSchedulesTable,
+          FeedingSchedule,
+          $$FeedingSchedulesTableFilterComposer,
+          $$FeedingSchedulesTableOrderingComposer,
+          $$FeedingSchedulesTableAnnotationComposer,
+          $$FeedingSchedulesTableCreateCompanionBuilder,
+          $$FeedingSchedulesTableUpdateCompanionBuilder,
+          (FeedingSchedule, $$FeedingSchedulesTableReferences),
+          FeedingSchedule,
+          PrefetchHooks Function({bool catId, bool feedingSlotsRefs})
+        > {
+  $$FeedingSchedulesTableTableManager(
+    _$AppDatabase db,
+    $FeedingSchedulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FeedingSchedulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FeedingSchedulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FeedingSchedulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> catId = const Value.absent(),
+                Value<int> timesPerDay = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FeedingSchedulesCompanion(
+                id: id,
+                catId: catId,
+                timesPerDay: timesPerDay,
+                enabled: enabled,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String catId,
+                required int timesPerDay,
+                Value<bool> enabled = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FeedingSchedulesCompanion.insert(
+                id: id,
+                catId: catId,
+                timesPerDay: timesPerDay,
+                enabled: enabled,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$FeedingSchedulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({catId = false, feedingSlotsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (feedingSlotsRefs) db.feedingSlots],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (catId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.catId,
+                                referencedTable:
+                                    $$FeedingSchedulesTableReferences
+                                        ._catIdTable(db),
+                                referencedColumn:
+                                    $$FeedingSchedulesTableReferences
+                                        ._catIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (feedingSlotsRefs)
+                    await $_getPrefetchedData<
+                      FeedingSchedule,
+                      $FeedingSchedulesTable,
+                      FeedingSlot
+                    >(
+                      currentTable: table,
+                      referencedTable: $$FeedingSchedulesTableReferences
+                          ._feedingSlotsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$FeedingSchedulesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).feedingSlotsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.scheduleId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$FeedingSchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FeedingSchedulesTable,
+      FeedingSchedule,
+      $$FeedingSchedulesTableFilterComposer,
+      $$FeedingSchedulesTableOrderingComposer,
+      $$FeedingSchedulesTableAnnotationComposer,
+      $$FeedingSchedulesTableCreateCompanionBuilder,
+      $$FeedingSchedulesTableUpdateCompanionBuilder,
+      (FeedingSchedule, $$FeedingSchedulesTableReferences),
+      FeedingSchedule,
+      PrefetchHooks Function({bool catId, bool feedingSlotsRefs})
+    >;
+typedef $$FeedingSlotsTableCreateCompanionBuilder =
+    FeedingSlotsCompanion Function({
+      required String id,
+      required String scheduleId,
+      required String catId,
+      required String label,
+      required int hour,
+      required int minute,
+      required int sortOrder,
+      Value<int> rowid,
+    });
+typedef $$FeedingSlotsTableUpdateCompanionBuilder =
+    FeedingSlotsCompanion Function({
+      Value<String> id,
+      Value<String> scheduleId,
+      Value<String> catId,
+      Value<String> label,
+      Value<int> hour,
+      Value<int> minute,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+final class $$FeedingSlotsTableReferences
+    extends BaseReferences<_$AppDatabase, $FeedingSlotsTable, FeedingSlot> {
+  $$FeedingSlotsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $FeedingSchedulesTable _scheduleIdTable(_$AppDatabase db) => db
+      .feedingSchedules
+      .createAlias('feeding_slots__schedule_id__feeding_schedules__id');
+
+  $$FeedingSchedulesTableProcessedTableManager get scheduleId {
+    final $_column = $_itemColumn<String>('schedule_id')!;
+
+    final manager = $$FeedingSchedulesTableTableManager(
+      $_db,
+      $_db.feedingSchedules,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_scheduleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $CatsTable _catIdTable(_$AppDatabase db) =>
+      db.cats.createAlias('feeding_slots__cat_id__cats__id');
+
+  $$CatsTableProcessedTableManager get catId {
+    final $_column = $_itemColumn<String>('cat_id')!;
+
+    final manager = $$CatsTableTableManager(
+      $_db,
+      $_db.cats,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_catIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$FeedingSlotsTableFilterComposer
+    extends Composer<_$AppDatabase, $FeedingSlotsTable> {
+  $$FeedingSlotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minute => $composableBuilder(
+    column: $table.minute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$FeedingSchedulesTableFilterComposer get scheduleId {
+    final $$FeedingSchedulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.scheduleId,
+      referencedTable: $db.feedingSchedules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSchedulesTableFilterComposer(
+            $db: $db,
+            $table: $db.feedingSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CatsTableFilterComposer get catId {
+    final $$CatsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableFilterComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FeedingSlotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FeedingSlotsTable> {
+  $$FeedingSlotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minute => $composableBuilder(
+    column: $table.minute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$FeedingSchedulesTableOrderingComposer get scheduleId {
+    final $$FeedingSchedulesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.scheduleId,
+      referencedTable: $db.feedingSchedules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSchedulesTableOrderingComposer(
+            $db: $db,
+            $table: $db.feedingSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CatsTableOrderingComposer get catId {
+    final $$CatsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableOrderingComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FeedingSlotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FeedingSlotsTable> {
+  $$FeedingSlotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get hour =>
+      $composableBuilder(column: $table.hour, builder: (column) => column);
+
+  GeneratedColumn<int> get minute =>
+      $composableBuilder(column: $table.minute, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  $$FeedingSchedulesTableAnnotationComposer get scheduleId {
+    final $$FeedingSchedulesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.scheduleId,
+      referencedTable: $db.feedingSchedules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FeedingSchedulesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.feedingSchedules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CatsTableAnnotationComposer get catId {
+    final $$CatsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FeedingSlotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FeedingSlotsTable,
+          FeedingSlot,
+          $$FeedingSlotsTableFilterComposer,
+          $$FeedingSlotsTableOrderingComposer,
+          $$FeedingSlotsTableAnnotationComposer,
+          $$FeedingSlotsTableCreateCompanionBuilder,
+          $$FeedingSlotsTableUpdateCompanionBuilder,
+          (FeedingSlot, $$FeedingSlotsTableReferences),
+          FeedingSlot,
+          PrefetchHooks Function({bool scheduleId, bool catId})
+        > {
+  $$FeedingSlotsTableTableManager(_$AppDatabase db, $FeedingSlotsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FeedingSlotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FeedingSlotsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FeedingSlotsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> scheduleId = const Value.absent(),
+                Value<String> catId = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<int> hour = const Value.absent(),
+                Value<int> minute = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FeedingSlotsCompanion(
+                id: id,
+                scheduleId: scheduleId,
+                catId: catId,
+                label: label,
+                hour: hour,
+                minute: minute,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String scheduleId,
+                required String catId,
+                required String label,
+                required int hour,
+                required int minute,
+                required int sortOrder,
+                Value<int> rowid = const Value.absent(),
+              }) => FeedingSlotsCompanion.insert(
+                id: id,
+                scheduleId: scheduleId,
+                catId: catId,
+                label: label,
+                hour: hour,
+                minute: minute,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$FeedingSlotsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({scheduleId = false, catId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (scheduleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.scheduleId,
+                                referencedTable: $$FeedingSlotsTableReferences
+                                    ._scheduleIdTable(db),
+                                referencedColumn: $$FeedingSlotsTableReferences
+                                    ._scheduleIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (catId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.catId,
+                                referencedTable: $$FeedingSlotsTableReferences
+                                    ._catIdTable(db),
+                                referencedColumn: $$FeedingSlotsTableReferences
+                                    ._catIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$FeedingSlotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FeedingSlotsTable,
+      FeedingSlot,
+      $$FeedingSlotsTableFilterComposer,
+      $$FeedingSlotsTableOrderingComposer,
+      $$FeedingSlotsTableAnnotationComposer,
+      $$FeedingSlotsTableCreateCompanionBuilder,
+      $$FeedingSlotsTableUpdateCompanionBuilder,
+      (FeedingSlot, $$FeedingSlotsTableReferences),
+      FeedingSlot,
+      PrefetchHooks Function({bool scheduleId, bool catId})
+    >;
+typedef $$SyncQueueTableCreateCompanionBuilder =
+    SyncQueueCompanion Function({
+      Value<int> id,
+      required String targetTable,
+      required String recordId,
+      required String operation,
+      required String payload,
+      Value<DateTime> createdAt,
+    });
+typedef $$SyncQueueTableUpdateCompanionBuilder =
+    SyncQueueCompanion Function({
+      Value<int> id,
+      Value<String> targetTable,
+      Value<String> recordId,
+      Value<String> operation,
+      Value<String> payload,
+      Value<DateTime> createdAt,
+    });
+
+class $$SyncQueueTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncQueueTable> {
+  $$SyncQueueTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncQueueTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncQueueTable> {
+  $$SyncQueueTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncQueueTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncQueueTable> {
+  $$SyncQueueTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<String> get operation =>
+      $composableBuilder(column: $table.operation, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$SyncQueueTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncQueueTable,
+          SyncQueueItem,
+          $$SyncQueueTableFilterComposer,
+          $$SyncQueueTableOrderingComposer,
+          $$SyncQueueTableAnnotationComposer,
+          $$SyncQueueTableCreateCompanionBuilder,
+          $$SyncQueueTableUpdateCompanionBuilder,
+          (
+            SyncQueueItem,
+            BaseReferences<_$AppDatabase, $SyncQueueTable, SyncQueueItem>,
+          ),
+          SyncQueueItem,
+          PrefetchHooks Function()
+        > {
+  $$SyncQueueTableTableManager(_$AppDatabase db, $SyncQueueTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncQueueTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncQueueTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncQueueTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> targetTable = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<String> operation = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SyncQueueCompanion(
+                id: id,
+                targetTable: targetTable,
+                recordId: recordId,
+                operation: operation,
+                payload: payload,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String targetTable,
+                required String recordId,
+                required String operation,
+                required String payload,
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SyncQueueCompanion.insert(
+                id: id,
+                targetTable: targetTable,
+                recordId: recordId,
+                operation: operation,
+                payload: payload,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncQueueTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncQueueTable,
+      SyncQueueItem,
+      $$SyncQueueTableFilterComposer,
+      $$SyncQueueTableOrderingComposer,
+      $$SyncQueueTableAnnotationComposer,
+      $$SyncQueueTableCreateCompanionBuilder,
+      $$SyncQueueTableUpdateCompanionBuilder,
+      (
+        SyncQueueItem,
+        BaseReferences<_$AppDatabase, $SyncQueueTable, SyncQueueItem>,
+      ),
+      SyncQueueItem,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3103,4 +4825,10 @@ class $AppDatabaseManager {
       $$EventsTableTableManager(_db, _db.events);
   $$NotificationSettingsTableTableManager get notificationSettings =>
       $$NotificationSettingsTableTableManager(_db, _db.notificationSettings);
+  $$FeedingSchedulesTableTableManager get feedingSchedules =>
+      $$FeedingSchedulesTableTableManager(_db, _db.feedingSchedules);
+  $$FeedingSlotsTableTableManager get feedingSlots =>
+      $$FeedingSlotsTableTableManager(_db, _db.feedingSlots);
+  $$SyncQueueTableTableManager get syncQueue =>
+      $$SyncQueueTableTableManager(_db, _db.syncQueue);
 }

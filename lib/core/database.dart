@@ -82,7 +82,7 @@ class FeedingSlots extends Table {
 @DataClassName('SyncQueueItem')
 class SyncQueue extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get tableName => text()();
+  TextColumn get targetTable => text()();
   TextColumn get recordId => text()();
   TextColumn get operation => text()();
   TextColumn get payload => text()();

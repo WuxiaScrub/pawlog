@@ -26,7 +26,15 @@ class PawLogApp extends ConsumerWidget {
   }
 }
 
-final _authGatePassedProvider = StateProvider<bool>((ref) => false);
+final _authGatePassedProvider =
+    NotifierProvider<_AuthGatePassedNotifier, bool>(
+        _AuthGatePassedNotifier.new);
+
+class _AuthGatePassedNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void pass() => state = true;
+}
 
 class _Root extends ConsumerWidget {
   const _Root();
@@ -67,7 +75,7 @@ class _AuthGateState extends ConsumerState<_AuthGate> {
   Future<void> _checkSkipStatus() async {
     final skipped = await hasSkippedAuth();
     if (skipped && mounted) {
-      ref.read(_authGatePassedProvider.notifier).state = true;
+      ref.read(_authGatePassedProvider.notifier).pass();
     }
     if (mounted) setState(() => _checking = false);
   }
@@ -82,7 +90,7 @@ class _AuthGateState extends ConsumerState<_AuthGate> {
 
     return WelcomeScreen(
       onContinue: () {
-        ref.read(_authGatePassedProvider.notifier).state = true;
+        ref.read(_authGatePassedProvider.notifier).pass();
       },
     );
   }
