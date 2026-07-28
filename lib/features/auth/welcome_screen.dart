@@ -12,6 +12,8 @@ const _webClientId =
     '91727702481-8n5ajp9aqs9kekphcikmaatkr57avftr.apps.googleusercontent.com';
 const _iosClientId =
     '91727702481-d5e8sjm6uhfoaaegm3qp6aksc9bcturn.apps.googleusercontent.com';
+const _androidClientId =
+    '91727702481-406bebdjscqh5dna6og0sce1rjv21ns7.apps.googleusercontent.com';
 
 const _skipKey = 'auth_skipped';
 const _storage = FlutterSecureStorage();
@@ -91,7 +93,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     try {
       final googleSignIn = GoogleSignIn(
-        clientId: !kIsWeb && Platform.isIOS ? _iosClientId : null,
+        clientId: !kIsWeb && Platform.isIOS
+            ? _iosClientId
+            : !kIsWeb && Platform.isAndroid
+                ? _androidClientId
+                : null,
         serverClientId: _webClientId,
       );
       final googleUser = await googleSignIn.signIn();

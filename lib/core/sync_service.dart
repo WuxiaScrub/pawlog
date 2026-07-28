@@ -24,7 +24,7 @@ class SyncService {
   }) {
     return _db.into(_db.syncQueue).insert(
           SyncQueueCompanion.insert(
-            tableName: tableName,
+            targetTable: tableName,
             recordId: recordId,
             operation: operation,
             payload: jsonEncode(payload),
@@ -82,10 +82,10 @@ class SyncService {
 
     switch (item.operation) {
       case 'insert' || 'update':
-        await supabase.from(item.tableName).upsert(payload);
+        await supabase.from(item.targetTable).upsert(payload);
       case 'delete':
         await supabase
-            .from(item.tableName)
+            .from(item.targetTable)
             .delete()
             .eq('id', item.recordId);
     }
