@@ -1,7 +1,16 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/supabase_client.dart';
+
+const _webClientId =
+    '91727702481-d5e8sjm6uhfoaaegm3qp6aksc9bcturn.apps.googleusercontent.com';
+const _iosClientId =
+    '91727702481-d5e8sjm6uhfoaaegm3qp6aksc9bcturn.apps.googleusercontent.com';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -53,6 +62,47 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final googleSignIn = GoogleSignIn(
+        clientId: !kIsWeb && Platform.isIOS ? _iosClientId : null,
+        serverClientId: _webClientId,
+      );
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null) {
+        setState(() => _error = 'Could not get Google credentials.');
+        return;
+      }
+
+      await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,6 +112,26 @@ class _AuthScreenState extends State<AuthScreen> {
         children: [
           const Text(
             'Sign in to back up your data and sync across devices.',
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: _loading ? null : _signInWithGoogle,
+            icon: const Icon(Icons.g_mobiledata, size: 24),
+            label: const Text('Continue with Google'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Row(
+            children: [
+              Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text('or', style: TextStyle(color: Colors.grey)),
+              ),
+              Expanded(child: Divider()),
+            ],
           ),
           const SizedBox(height: 24),
           TextField(
