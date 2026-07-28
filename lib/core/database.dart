@@ -79,14 +79,32 @@ class FeedingSlots extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('SyncQueueItem')
+class SyncQueue extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get tableName => text()();
+  TextColumn get recordId => text()();
+  TextColumn get operation => text()();
+  TextColumn get payload => text()();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(
-  tables: [Cats, Events, NotificationSettings, FeedingSchedules, FeedingSlots],
+  tables: [
+    Cats,
+    Events,
+    NotificationSettings,
+    FeedingSchedules,
+    FeedingSlots,
+    SyncQueue,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection('pawlog'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,15 +119,6 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(feedingSlots);
       }
       if (from < 3) {
-        // NotificationSettingsRepository.upsert used to do a select-then-
-        // insert/update with no DB-level uniqueness on event_type, so two
-        // near-simultaneous writes could each insert their own row for the
-        // same event type — the most recent write didn't always win, and a
-        // stale threshold could resurface without the row being deleted.
-        // Collapse any rows that already duplicated this way down to the
-        // most recently written one per event type, then add a real unique
-        // constraint so the upsert can use a single atomic SQL statement
-        // instead of a race-prone read-then-write.
         await customStatement(
           'DELETE FROM notification_settings WHERE rowid NOT IN '
           '(SELECT MAX(rowid) FROM notification_settings GROUP BY event_type)',
@@ -119,6 +128,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.addColumn(cats, cats.quickLogTypesJson);
         await m.addColumn(cats, cats.screeningDone);
+      }
+      if (from < 5) {
+        await m.createTable(syncQueue);
       }
     },
   );

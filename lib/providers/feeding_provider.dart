@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/database.dart';
+import '../core/sync_service.dart';
 import '../models/event_type.dart';
 import 'database_provider.dart';
 import 'events_provider.dart';
+import 'sync_provider.dart';
 
 const _uuid = Uuid();
 
@@ -35,18 +37,13 @@ class FeedingSlotStatus {
   final FeedingSlot slot;
 
   /// When this slot was checked off today, or null if still pending.
-  /// Surfaced from the shared Events log, so any household member who logs
-  /// a feeding for this slot makes it show as done for everyone reading the
-  /// same database.
   final DateTime? fedAt;
 
   bool get isFed => fedAt != null;
 }
 
 /// Combines today's feeding slots with the Events log to derive which slots
-/// have already been fed today, keyed off `metadata.slot_id` rather than a
-/// separate "fed" flag — so the existing event history/delete UI doubles as
-/// the undo mechanism for an accidental check-off.
+/// have already been fed today.
 final todaysFeedingStatusProvider =
     Provider.family<AsyncValue<List<FeedingSlotStatus>>, String>((ref, catId) {
   final scheduleAsync = ref.watch(feedingScheduleStreamProvider(catId));
@@ -102,17 +99,20 @@ final todaysFeedingStatusProvider =
 });
 
 class FeedingScheduleRepository {
-  FeedingScheduleRepository(this._db);
+  FeedingScheduleRepository(this._db, this._sync);
   final AppDatabase _db;
+  final SyncService _sync;
 
-  /// Replaces any existing schedule for the cat with a fresh one made up of
-  /// [slots], in a single transaction so readers never see a partial state.
   Future<void> saveSchedule({
     required String catId,
     required int timesPerDay,
     required List<({String label, int hour, int minute})> slots,
-  }) {
-    return _db.transaction(() async {
+  }) async {
+    final scheduleId = _uuid.v4();
+    final now = DateTime.now();
+    final slotIds = List.generate(slots.length, (_) => _uuid.v4());
+
+    await _db.transaction(() async {
       final existing = await (_db.select(_db.feedingSchedules)
             ..where((t) => t.catId.equals(catId)))
           .getSingleOrNull();
@@ -124,9 +124,14 @@ class FeedingScheduleRepository {
         await (_db.delete(_db.feedingSchedules)
               ..where((t) => t.id.equals(existing.id)))
             .go();
+        await _sync.enqueue(
+          tableName: 'feeding_schedules',
+          recordId: existing.id,
+          operation: 'delete',
+          payload: {},
+        );
       }
 
-      final scheduleId = _uuid.v4();
       await _db.into(_db.feedingSchedules).insert(
             FeedingSchedulesCompanion.insert(
               id: scheduleId,
@@ -134,12 +139,25 @@ class FeedingScheduleRepository {
               timesPerDay: timesPerDay,
             ),
           );
+      await _sync.enqueue(
+        tableName: 'feeding_schedules',
+        recordId: scheduleId,
+        operation: 'insert',
+        payload: {
+          'id': scheduleId,
+          'cat_id': catId,
+          'times_per_day': timesPerDay,
+          'enabled': true,
+          'created_at': now.toIso8601String(),
+        },
+      );
 
       for (var i = 0; i < slots.length; i++) {
         final slot = slots[i];
+        final slotId = slotIds[i];
         await _db.into(_db.feedingSlots).insert(
               FeedingSlotsCompanion.insert(
-                id: _uuid.v4(),
+                id: slotId,
                 scheduleId: scheduleId,
                 catId: catId,
                 label: slot.label,
@@ -148,12 +166,27 @@ class FeedingScheduleRepository {
                 sortOrder: i,
               ),
             );
+        await _sync.enqueue(
+          tableName: 'feeding_slots',
+          recordId: slotId,
+          operation: 'insert',
+          payload: {
+            'id': slotId,
+            'schedule_id': scheduleId,
+            'cat_id': catId,
+            'label': slot.label,
+            'hour': slot.hour,
+            'minute': slot.minute,
+            'sort_order': i,
+          },
+        );
       }
     });
+    _sync.triggerSync();
   }
 
-  Future<void> deleteSchedule(String scheduleId) {
-    return _db.transaction(() async {
+  Future<void> deleteSchedule(String scheduleId) async {
+    await _db.transaction(() async {
       await (_db.delete(_db.feedingSlots)
             ..where((t) => t.scheduleId.equals(scheduleId)))
           .go();
@@ -161,10 +194,20 @@ class FeedingScheduleRepository {
             ..where((t) => t.id.equals(scheduleId)))
           .go();
     });
+    await _sync.enqueue(
+      tableName: 'feeding_schedules',
+      recordId: scheduleId,
+      operation: 'delete',
+      payload: {},
+    );
+    _sync.triggerSync();
   }
 }
 
 final feedingScheduleRepositoryProvider =
     Provider<FeedingScheduleRepository>((ref) {
-  return FeedingScheduleRepository(ref.watch(databaseProvider));
+  return FeedingScheduleRepository(
+    ref.watch(databaseProvider),
+    ref.watch(syncServiceProvider),
+  );
 });

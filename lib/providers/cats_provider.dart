@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/database.dart';
+import '../core/sync_service.dart';
 import '../models/event_type.dart';
 import 'database_provider.dart';
+import 'sync_provider.dart';
 
 const _uuid = Uuid();
 
@@ -26,8 +28,9 @@ final activeCatProvider = Provider<Cat?>((ref) {
 });
 
 class CatsRepository {
-  CatsRepository(this._db);
+  CatsRepository(this._db, this._sync);
   final AppDatabase _db;
+  final SyncService _sync;
 
   Future<String> addCat({
     required String name,
@@ -37,6 +40,7 @@ class CatsRepository {
     String? photoPath,
   }) async {
     final id = _uuid.v4();
+    final now = DateTime.now();
     await _db.into(_db.cats).insert(
           CatsCompanion.insert(
             id: id,
@@ -47,24 +51,77 @@ class CatsRepository {
             photoPath: Value(photoPath),
           ),
         );
+    await _sync.enqueue(
+      tableName: 'cats',
+      recordId: id,
+      operation: 'insert',
+      payload: {
+        'id': id,
+        'name': name,
+        'breed': breed,
+        'date_of_birth': dateOfBirth?.toIso8601String(),
+        'weight_kg': weightKg,
+        'photo_path': photoPath,
+        'screening_done': false,
+        'created_at': now.toIso8601String(),
+      },
+    );
+    _sync.triggerSync();
     return id;
   }
 
-  Future<void> updateCat(Cat cat) {
-    return _db.update(_db.cats).replace(cat);
+  Future<void> updateCat(Cat cat) async {
+    await _db.update(_db.cats).replace(cat);
+    await _sync.enqueue(
+      tableName: 'cats',
+      recordId: cat.id,
+      operation: 'update',
+      payload: {
+        'id': cat.id,
+        'name': cat.name,
+        'breed': cat.breed,
+        'date_of_birth': cat.dateOfBirth?.toIso8601String(),
+        'weight_kg': cat.weightKg,
+        'photo_path': cat.photoPath,
+        'quick_log_types_json': cat.quickLogTypesJson,
+        'screening_done': cat.screeningDone,
+        'created_at': cat.createdAt.toIso8601String(),
+      },
+    );
+    _sync.triggerSync();
   }
 
   Future<void> saveQuickLogPreferences({
     required String catId,
     required List<CatEventType> enabledTypes,
-  }) {
+  }) async {
     final json = jsonEncode(enabledTypes.map((t) => t.storageKey).toList());
-    return (_db.update(_db.cats)..where((t) => t.id.equals(catId))).write(
+    await (_db.update(_db.cats)..where((t) => t.id.equals(catId))).write(
       CatsCompanion(
         quickLogTypesJson: Value(json),
         screeningDone: const Value(true),
       ),
     );
+    final cat = await (_db.select(_db.cats)
+          ..where((t) => t.id.equals(catId)))
+        .getSingle();
+    await _sync.enqueue(
+      tableName: 'cats',
+      recordId: cat.id,
+      operation: 'update',
+      payload: {
+        'id': cat.id,
+        'name': cat.name,
+        'breed': cat.breed,
+        'date_of_birth': cat.dateOfBirth?.toIso8601String(),
+        'weight_kg': cat.weightKg,
+        'photo_path': cat.photoPath,
+        'quick_log_types_json': cat.quickLogTypesJson,
+        'screening_done': cat.screeningDone,
+        'created_at': cat.createdAt.toIso8601String(),
+      },
+    );
+    _sync.triggerSync();
   }
 }
 
@@ -77,5 +134,8 @@ Set<CatEventType>? decodeQuickLogTypes(String? json) {
 }
 
 final catsRepositoryProvider = Provider<CatsRepository>((ref) {
-  return CatsRepository(ref.watch(databaseProvider));
+  return CatsRepository(
+    ref.watch(databaseProvider),
+    ref.watch(syncServiceProvider),
+  );
 });

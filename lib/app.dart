@@ -5,12 +5,14 @@ import 'core/main_shell.dart';
 import 'features/cats/cat_care_screening_screen.dart';
 import 'features/cats/cat_profile_setup_screen.dart';
 import 'providers/cats_provider.dart';
+import 'providers/sync_provider.dart';
 
 class PawLogApp extends ConsumerWidget {
   const PawLogApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(autoSyncProvider);
     return MaterialApp(
       title: 'PawLog',
       theme: ThemeData(
