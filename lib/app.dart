@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/main_shell.dart';
+import 'features/auth/welcome_screen.dart';
 import 'features/cats/cat_care_screening_screen.dart';
 import 'features/cats/cat_profile_setup_screen.dart';
+import 'providers/auth_provider.dart';
 import 'providers/cats_provider.dart';
 import 'providers/sync_provider.dart';
 
@@ -24,8 +26,70 @@ class PawLogApp extends ConsumerWidget {
   }
 }
 
+final _authGatePassedProvider = StateProvider<bool>((ref) => false);
+
 class _Root extends ConsumerWidget {
   const _Root();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final gatePassed = ref.watch(_authGatePassedProvider);
+
+    if (user != null) {
+      return const _AppContent();
+    }
+
+    if (gatePassed) {
+      return const _AppContent();
+    }
+
+    return const _AuthGate();
+  }
+}
+
+class _AuthGate extends ConsumerStatefulWidget {
+  const _AuthGate();
+
+  @override
+  ConsumerState<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<_AuthGate> {
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSkipStatus();
+  }
+
+  Future<void> _checkSkipStatus() async {
+    final skipped = await hasSkippedAuth();
+    if (skipped && mounted) {
+      ref.read(_authGatePassedProvider.notifier).state = true;
+    }
+    if (mounted) setState(() => _checking = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return WelcomeScreen(
+      onContinue: () {
+        ref.read(_authGatePassedProvider.notifier).state = true;
+      },
+    );
+  }
+}
+
+class _AppContent extends ConsumerWidget {
+  const _AppContent();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,7 +99,6 @@ class _Root extends ConsumerWidget {
       data: (cats) {
         if (cats.isEmpty) return const CatProfileSetupScreen();
         final cat = cats.first;
-        // Show the care-preferences screening once per new cat until complete.
         if (!cat.screeningDone) {
           return CatCareScreeningScreen(catId: cat.id, catName: cat.name);
         }
