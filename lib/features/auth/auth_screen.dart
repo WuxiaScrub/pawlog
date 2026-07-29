@@ -72,12 +72,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       final googleSignIn = GoogleSignIn(
-        clientId: !kIsWeb && Platform.isIOS
-            ? _iosClientId
-            : !kIsWeb && Platform.isAndroid
-                ? _androidClientId
-                : null,
-        serverClientId: _webClientId,
+        clientId: kIsWeb
+            ? _webClientId
+            : Platform.isIOS
+                ? _iosClientId
+                : Platform.isAndroid
+                    ? _androidClientId
+                    : null,
+        serverClientId: kIsWeb ? null : _webClientId,
       );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
