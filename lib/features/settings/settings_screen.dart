@@ -92,11 +92,49 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _AccountSection extends ConsumerWidget {
+class _AccountSection extends ConsumerStatefulWidget {
   const _AccountSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AccountSection> createState() => _AccountSectionState();
+}
+
+class _AccountSectionState extends ConsumerState<_AccountSection> {
+  bool _syncing = false;
+
+  Future<void> _syncNow() async {
+    setState(() => _syncing = true);
+    try {
+      final result =
+          await ref.read(syncServiceProvider).triggerSyncAndWait();
+      if (!mounted) return;
+      final parts = <String>[];
+      if (result.photosUploaded > 0) {
+        parts.add('${result.photosUploaded} '
+            '${result.photosUploaded == 1 ? 'photo' : 'photos'}');
+      }
+      final dbItems = result.itemCount;
+      if (dbItems > 0) {
+        parts.add('$dbItems ${dbItems == 1 ? 'item' : 'items'}');
+      }
+      final message = parts.isEmpty
+          ? 'Everything is up to date'
+          : 'Synced ${parts.join(' and ')} to cloud';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sync failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
 
     if (user == null) {
@@ -123,17 +161,15 @@ class _AccountSection extends ConsumerWidget {
           child: Row(
             children: [
               TextButton.icon(
-                onPressed: () {
-                  ref.read(syncServiceProvider).triggerSync();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sync started'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.sync, size: 18),
-                label: const Text('Sync now'),
+                onPressed: _syncing ? null : _syncNow,
+                icon: _syncing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync, size: 18),
+                label: Text(_syncing ? 'Syncing...' : 'Sync now'),
               ),
               const SizedBox(width: 8),
               TextButton.icon(

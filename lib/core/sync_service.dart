@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'database.dart';
+import 'photo_cloud.dart';
 import 'supabase_client.dart';
 
 class SyncResult {
   final int itemCount;
-  const SyncResult(this.itemCount);
+  final int photosUploaded;
+  const SyncResult(this.itemCount, {this.photosUploaded = 0});
 }
 
 class SyncService {
@@ -20,6 +23,7 @@ class SyncService {
   static const _seedKeyPrefix = 'sync_seeded_';
 
   bool _processing = false;
+  final _waiters = <Completer<SyncResult>>[];
 
   final _statusController = StreamController<SyncResult>.broadcast();
   Stream<SyncResult> get statusStream => _statusController.stream;
@@ -45,6 +49,15 @@ class SyncService {
     unawaited(_processQueue());
   }
 
+  Future<SyncResult> triggerSyncAndWait() {
+    final completer = Completer<SyncResult>();
+    _waiters.add(completer);
+    if (!_processing) {
+      unawaited(_processQueue());
+    }
+    return completer.future;
+  }
+
   Future<int> pendingCount() async {
     final result = await _db
         .customSelect('SELECT COUNT(*) AS c FROM sync_queue')
@@ -56,11 +69,17 @@ class SyncService {
     if (_processing) return;
 
     final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      _completeWaiters(const SyncResult(0));
+      return;
+    }
 
     _processing = true;
     var syncedCount = 0;
+    var photosUploaded = 0;
     try {
+      photosUploaded = await _reuploadLocalPhotos();
+
       while (true) {
         final items = await (_db.select(_db.syncQueue)
               ..orderBy([(t) => OrderingTerm.asc(t.id)])
@@ -77,18 +96,113 @@ class SyncService {
                 .go();
             syncedCount++;
           } catch (_) {
-            if (syncedCount > 0) {
-              _statusController.add(SyncResult(syncedCount));
-            }
+            _completeWaiters(
+              SyncResult(syncedCount, photosUploaded: photosUploaded),
+            );
             return;
           }
         }
       }
-      if (syncedCount > 0) {
-        _statusController.add(SyncResult(syncedCount));
-      }
+      _completeWaiters(
+        SyncResult(syncedCount, photosUploaded: photosUploaded),
+      );
     } finally {
       _processing = false;
+    }
+  }
+
+  void _completeWaiters(SyncResult result) {
+    _statusController.add(result);
+    for (final c in _waiters) {
+      c.complete(result);
+    }
+    _waiters.clear();
+  }
+
+  /// Re-uploads cat/event photos that are stored as data: URIs instead of
+  /// cloud URLs. Returns the number of photos successfully uploaded.
+  Future<int> _reuploadLocalPhotos() async {
+    var count = 0;
+
+    final cats = await _db.select(_db.cats).get();
+    for (final cat in cats) {
+      final path = cat.photoPath;
+      if (path == null || path.isEmpty || path.startsWith('http')) continue;
+
+      final cloudUrl = await _tryUploadDataUri(path);
+      if (cloudUrl == null) continue;
+
+      await (_db.update(_db.cats)..where((t) => t.id.equals(cat.id)))
+          .write(CatsCompanion(photoPath: Value(cloudUrl)));
+      await enqueue(
+        tableName: 'cats',
+        recordId: cat.id,
+        operation: 'update',
+        payload: {
+          'id': cat.id,
+          'name': cat.name,
+          'breed': cat.breed,
+          'date_of_birth': cat.dateOfBirth?.toIso8601String(),
+          'weight_kg': cat.weightKg,
+          'photo_path': cloudUrl,
+          'quick_log_types_json': cat.quickLogTypesJson,
+          'screening_done': cat.screeningDone,
+          'created_at': cat.createdAt.toIso8601String(),
+        },
+      );
+      count++;
+    }
+
+    final events = await _db.select(_db.events).get();
+    for (final event in events) {
+      if (event.metadataJson == null) continue;
+      final metadata =
+          jsonDecode(event.metadataJson!) as Map<String, dynamic>;
+      final photoPath = metadata['photo_path'] as String?;
+      if (photoPath == null || photoPath.startsWith('http')) continue;
+
+      final cloudUrl = await _tryUploadDataUri(photoPath);
+      if (cloudUrl == null) continue;
+
+      metadata['photo_path'] = cloudUrl;
+      final updatedJson = jsonEncode(metadata);
+      await (_db.update(_db.events)..where((t) => t.id.equals(event.id)))
+          .write(EventsCompanion(metadataJson: Value(updatedJson)));
+      await enqueue(
+        tableName: 'events',
+        recordId: event.id,
+        operation: 'update',
+        payload: {
+          'id': event.id,
+          'cat_id': event.catId,
+          'event_type': event.eventType,
+          'notes': event.notes,
+          'metadata_json': updatedJson,
+          'logged_at': event.loggedAt.toIso8601String(),
+          'created_at': event.createdAt.toIso8601String(),
+        },
+      );
+      count++;
+    }
+
+    return count;
+  }
+
+  Future<String?> _tryUploadDataUri(String path) async {
+    if (!path.startsWith('data:')) return null;
+    try {
+      final base64Data = path.substring(path.indexOf(',') + 1);
+      final bytes = Uint8List.fromList(base64Decode(base64Data));
+      final mimeType = path.substring(5, path.indexOf(';'));
+      final ext = switch (mimeType) {
+        'image/png' => '.png',
+        'image/gif' => '.gif',
+        'image/webp' => '.webp',
+        _ => '.jpg',
+      };
+      return await uploadPhotoToCloud(bytes, ext);
+    } catch (_) {
+      return null;
     }
   }
 

@@ -110,17 +110,24 @@ class _AppContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(syncStatusProvider, (prev, next) {
       final result = next.value;
-      if (result != null && result.itemCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Synced ${result.itemCount} '
-              '${result.itemCount == 1 ? 'item' : 'items'} to cloud',
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+      if (result == null) return;
+      final total = result.itemCount + result.photosUploaded;
+      if (total <= 0) return;
+      final parts = <String>[];
+      if (result.photosUploaded > 0) {
+        parts.add('${result.photosUploaded} '
+            '${result.photosUploaded == 1 ? 'photo' : 'photos'}');
       }
+      if (result.itemCount > 0) {
+        parts.add('${result.itemCount} '
+            '${result.itemCount == 1 ? 'item' : 'items'}');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Synced ${parts.join(' and ')} to cloud'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     });
 
     final catsAsync = ref.watch(catsStreamProvider);
