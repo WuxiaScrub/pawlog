@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/main_shell.dart';
+import 'core/sync_service.dart';
 import 'features/auth/welcome_screen.dart';
 import 'features/cats/cat_care_screening_screen.dart';
 import 'features/cats/cat_profile_setup_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cats_provider.dart';
+import 'providers/database_provider.dart';
 import 'providers/sync_provider.dart';
 
 class PawLogApp extends ConsumerWidget {
@@ -14,7 +16,12 @@ class PawLogApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(autoSyncProvider);
+    // Eagerly initialize the database so the WASM binary downloads before
+    // the user finishes logging in, preventing a stuck loading spinner.
+    ref.watch(databaseProvider);
+    // Keep the auto-sync provider alive without rebuilding the entire app
+    // on every auth state change.
+    ref.listen(autoSyncProvider, (_, __) {});
     return MaterialApp(
       title: 'PawLog',
       theme: ThemeData(
@@ -101,6 +108,21 @@ class _AppContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(syncStatusProvider, (prev, next) {
+      final result = next.valueOrNull;
+      if (result != null && result.itemCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Synced ${result.itemCount} '
+              '${result.itemCount == 1 ? 'item' : 'items'} to cloud',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+
     final catsAsync = ref.watch(catsStreamProvider);
 
     return catsAsync.when(

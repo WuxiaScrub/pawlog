@@ -7,6 +7,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'database.dart';
 import 'supabase_client.dart';
 
+class SyncResult {
+  final int itemCount;
+  const SyncResult(this.itemCount);
+}
+
 class SyncService {
   SyncService(this._db);
   final AppDatabase _db;
@@ -15,6 +20,9 @@ class SyncService {
   static const _seedKeyPrefix = 'sync_seeded_';
 
   bool _processing = false;
+
+  final _statusController = StreamController<SyncResult>.broadcast();
+  Stream<SyncResult> get statusStream => _statusController.stream;
 
   Future<void> enqueue({
     required String tableName,
@@ -51,6 +59,7 @@ class SyncService {
     if (user == null) return;
 
     _processing = true;
+    var syncedCount = 0;
     try {
       while (true) {
         final items = await (_db.select(_db.syncQueue)
@@ -66,10 +75,17 @@ class SyncService {
             await (_db.delete(_db.syncQueue)
                   ..where((t) => t.id.equals(item.id)))
                 .go();
+            syncedCount++;
           } catch (_) {
+            if (syncedCount > 0) {
+              _statusController.add(SyncResult(syncedCount));
+            }
             return;
           }
         }
+      }
+      if (syncedCount > 0) {
+        _statusController.add(SyncResult(syncedCount));
       }
     } finally {
       _processing = false;
