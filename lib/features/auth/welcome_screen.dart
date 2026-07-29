@@ -93,12 +93,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     try {
       final googleSignIn = GoogleSignIn(
-        clientId: !kIsWeb && Platform.isIOS
-            ? _iosClientId
-            : !kIsWeb && Platform.isAndroid
-                ? _androidClientId
-                : null,
-        serverClientId: _webClientId,
+        clientId: kIsWeb
+            ? _webClientId
+            : Platform.isIOS
+                ? _iosClientId
+                : Platform.isAndroid
+                    ? _androidClientId
+                    : null,
+        serverClientId: kIsWeb ? null : _webClientId,
       );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
@@ -180,6 +182,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ),
             ),
+            if (_error != null && !_showEmailForm) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
             const SizedBox(height: 20),
             const Row(
               children: [
