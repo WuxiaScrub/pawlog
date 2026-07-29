@@ -109,7 +109,7 @@ class _AppContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(syncStatusProvider, (prev, next) {
-      final result = next.valueOrNull;
+      final result = next.value;
       if (result != null && result.itemCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
