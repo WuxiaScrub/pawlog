@@ -72,7 +72,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (kIsWeb) {
-        await supabase.auth.signInWithOAuth(OAuthProvider.google);
+        await supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: Uri.base.toString(),
+        );
         return;
       }
 
