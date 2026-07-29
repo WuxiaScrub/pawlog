@@ -71,15 +71,18 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
+      if (kIsWeb) {
+        await supabase.auth.signInWithOAuth(OAuthProvider.google);
+        return;
+      }
+
       final googleSignIn = GoogleSignIn(
-        clientId: kIsWeb
-            ? _webClientId
-            : Platform.isIOS
-                ? _iosClientId
-                : Platform.isAndroid
-                    ? _androidClientId
-                    : null,
-        serverClientId: kIsWeb ? null : _webClientId,
+        clientId: Platform.isIOS
+            ? _iosClientId
+            : Platform.isAndroid
+                ? _androidClientId
+                : null,
+        serverClientId: _webClientId,
       );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
