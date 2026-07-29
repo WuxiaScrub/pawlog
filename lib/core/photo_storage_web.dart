@@ -1,12 +1,10 @@
 import 'dart:convert';
 
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 
-/// Web counterpart to the native [PhotoStorage]. The browser has no
-/// filesystem to copy a picked photo into (and `picked.path` is just a
-/// transient blob: URL), so the image bytes are base64-encoded into a data
-/// URL and stored directly wherever the caller persists the path/metadata
-/// string instead of a real file path.
+import 'photo_cloud.dart';
+
 class PhotoStorage {
   const PhotoStorage();
 
@@ -20,11 +18,16 @@ class PhotoStorage {
     if (picked == null) return null;
 
     final bytes = await picked.readAsBytes();
+    final ext = p.extension(picked.name).isEmpty ? '.jpg' : p.extension(picked.name);
+
+    final cloudUrl = await uploadPhotoToCloud(bytes, ext);
+    if (cloudUrl != null) return cloudUrl;
+
     final mimeType = picked.mimeType ?? 'image/jpeg';
     return 'data:$mimeType;base64,${base64Encode(bytes)}';
   }
 
   Future<void> delete(String? photoPath) async {
-    // Nothing to clean up — data URLs live only in the database row.
+    await deleteCloudPhoto(photoPath);
   }
 }

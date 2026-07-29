@@ -5,9 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-/// Handles picking a photo (cat profile or event log) and copying it into
-/// app-local storage so it survives independent of wherever the OS picker
-/// sourced it from (camera roll, cloud-backed photo, etc).
+import 'photo_cloud.dart';
+
 class PhotoStorage {
   const PhotoStorage();
 
@@ -22,13 +21,18 @@ class PhotoStorage {
     );
     if (picked == null) return null;
 
+    final bytes = await picked.readAsBytes();
+    final ext = p.extension(picked.path);
+
+    final cloudUrl = await uploadPhotoToCloud(bytes, ext);
+    if (cloudUrl != null) return cloudUrl;
+
     final docsDir = await getApplicationDocumentsDirectory();
     final photosDir = Directory(p.join(docsDir.path, 'photos'));
     if (!await photosDir.exists()) {
       await photosDir.create(recursive: true);
     }
 
-    final ext = p.extension(picked.path);
     final fileName = '${_uuid.v4()}$ext';
     final savedPath = p.join(photosDir.path, fileName);
     await File(picked.path).copy(savedPath);
@@ -37,9 +41,14 @@ class PhotoStorage {
 
   Future<void> delete(String? photoPath) async {
     if (photoPath == null || photoPath.isEmpty) return;
-    final file = File(photoPath);
-    if (await file.exists()) {
-      await file.delete();
+
+    await deleteCloudPhoto(photoPath);
+
+    if (!photoPath.startsWith('http')) {
+      final file = File(photoPath);
+      if (await file.exists()) {
+        await file.delete();
+      }
     }
   }
 }

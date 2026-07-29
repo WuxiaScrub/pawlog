@@ -10,6 +10,10 @@ final syncServiceProvider = Provider<SyncService>((ref) {
   return SyncService(ref.watch(databaseProvider));
 });
 
+final syncStatusProvider = StreamProvider<SyncResult>((ref) {
+  return ref.watch(syncServiceProvider).statusStream;
+});
+
 final autoSyncProvider = Provider<void>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user != null) {
