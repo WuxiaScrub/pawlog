@@ -118,6 +118,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
         eventType: localMatch.eventType,
         notes: localMatch.notes,
         metadata: Map<String, dynamic>.from(localMatch.metadata),
+        loggedAt: localMatch.loggedAt,
       );
 
       final isSimple = _autoConfirmTypes.contains(localMatch.eventType) &&
@@ -172,6 +173,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
       eventType: event.eventType,
       notes: event.notes?.trim().isEmpty == true ? null : event.notes,
       metadata: metadata.isEmpty ? null : metadata,
+      loggedAt: event.loggedAt,
     );
     if (!mounted) return;
 
@@ -232,6 +234,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
         eventType: event.eventType,
         notes: event.notes?.trim().isEmpty == true ? null : event.notes,
         metadata: metadata.isEmpty ? null : metadata,
+        loggedAt: event.loggedAt,
       );
     }
 
@@ -537,6 +540,7 @@ class _EditableEvent {
     required this.eventType,
     this.notes,
     required this.metadata,
+    this.loggedAt,
   });
 
   factory _EditableEvent.fromParsed(ParsedEvent parsed) {
@@ -550,6 +554,7 @@ class _EditableEvent {
   CatEventType eventType;
   String? notes;
   Map<String, dynamic> metadata;
+  DateTime? loggedAt;
 }
 
 class _EventCard extends StatelessWidget {

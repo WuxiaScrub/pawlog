@@ -5,11 +5,13 @@ class MatchResult {
     required this.eventType,
     this.notes,
     this.metadata = const {},
+    this.loggedAt,
   });
 
   final CatEventType eventType;
   final String? notes;
   final Map<String, dynamic> metadata;
+  final DateTime? loggedAt;
 }
 
 class TranscriptMatcher {
@@ -122,13 +124,19 @@ class TranscriptMatcher {
 
     if (hit == null) return null;
 
-    final notes = _extractNotes(transcript, hit.match);
+    final timeResult = _extractTime(text);
+    final notes = _extractNotes(
+      transcript,
+      hit.match,
+      timeResult?.matchRange,
+    );
     final metadata = _extractMetadata(hit.eventType, text);
 
     return MatchResult(
       eventType: hit.eventType,
       notes: notes,
       metadata: metadata,
+      loggedAt: timeResult?.dateTime,
     );
   }
 
@@ -141,10 +149,58 @@ class TranscriptMatcher {
     return _negationPattern.hasMatch(windowText);
   }
 
-  String? _extractNotes(String original, Match match) {
+  static final _timePattern = RegExp(
+    r'(yesterday\s+)?'
+    r'(?:at\s+|around\s+)?'
+    r'(\d{1,2})(?::(\d{2}))?\s*'
+    r'(a\.?m\.?|p\.?m\.?)'
+    r'(?:\s+(?:this\s+)?(?:morning|afternoon|evening|tonight))?',
+    caseSensitive: false,
+  );
+
+  _TimeResult? _extractTime(String text) {
+    final m = _timePattern.firstMatch(text);
+    if (m == null) return null;
+
+    var hour = int.tryParse(m.group(2)!);
+    final minute = int.tryParse(m.group(3) ?? '0') ?? 0;
+    final amPm = m.group(4)!.toLowerCase().replaceAll('.', '');
+    if (hour == null || hour < 1 || hour > 12) return null;
+    if (minute < 0 || minute > 59) return null;
+
+    if (amPm == 'pm' && hour != 12) hour += 12;
+    if (amPm == 'am' && hour == 12) hour = 0;
+
+    final isYesterday = m.group(1) != null;
+    var date = DateTime.now();
+    if (isYesterday) date = date.subtract(const Duration(days: 1));
+
+    final result = DateTime(date.year, date.month, date.day, hour, minute);
+    if (result.isAfter(DateTime.now())) return null;
+
+    return _TimeResult(result, _Range(m.start, m.end));
+  }
+
+  String? _extractNotes(String original, Match match, [_Range? timeRange]) {
     var remaining =
         (original.substring(0, match.start) + original.substring(match.end))
             .trim();
+
+    if (timeRange != null) {
+      final adjusted = _Range(
+        timeRange.start > match.start
+            ? timeRange.start - (match.end - match.start)
+            : timeRange.start,
+        timeRange.end > match.start
+            ? timeRange.end - (match.end - match.start)
+            : timeRange.end,
+      );
+      if (adjusted.start >= 0 && adjusted.end <= remaining.length) {
+        remaining = (remaining.substring(0, adjusted.start) +
+                remaining.substring(adjusted.end))
+            .trim();
+      }
+    }
 
     remaining = remaining.replaceFirst(
       RegExp(
@@ -216,4 +272,16 @@ class _MatchHit {
   _MatchHit(this.eventType, this.match);
   final CatEventType eventType;
   final Match match;
+}
+
+class _Range {
+  _Range(this.start, this.end);
+  final int start;
+  final int end;
+}
+
+class _TimeResult {
+  _TimeResult(this.dateTime, this.matchRange);
+  final DateTime dateTime;
+  final _Range matchRange;
 }

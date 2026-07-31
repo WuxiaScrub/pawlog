@@ -399,6 +399,51 @@ void main() {
     });
   });
 
+  group('time extraction', () {
+    test('parses "at 10 AM" and sets loggedAt', () {
+      final r = matcher.tryMatch('changed the water at 10 AM');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.waterChange);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 10);
+      expect(r!.loggedAt!.minute, 0);
+      expect(r!.notes, isNull);
+    });
+
+    test('parses "at 2:30 PM"', () {
+      final r = matcher.tryMatch('scooped the litter at 2:30 PM');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 14);
+      expect(r!.loggedAt!.minute, 30);
+    });
+
+    test('parses "at 10 AM this morning"', () {
+      final r = matcher.tryMatch('I changed the water at 10 AM this morning');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 10);
+      expect(r!.notes, isNull);
+    });
+
+    test('parses "yesterday at 3 PM"', () {
+      final r = matcher.tryMatch('fed the cat yesterday at 3 PM');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 15);
+      final now = DateTime.now();
+      final yesterday = DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 1));
+      expect(r!.loggedAt!.day, yesterday.day);
+    });
+
+    test('returns null loggedAt when no time mentioned', () {
+      final r = matcher.tryMatch('changed the water');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNull);
+    });
+  });
+
   group('no match fallback', () {
     test('returns null for empty string', () {
       expect(matcher.tryMatch(''), isNull);
