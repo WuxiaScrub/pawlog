@@ -10,12 +10,14 @@ class ParsedEvent {
     this.catName,
     this.notes,
     this.metadata = const {},
+    this.loggedAt,
   });
 
   final CatEventType eventType;
   final String? catName;
   final String? notes;
   final Map<String, dynamic> metadata;
+  final DateTime? loggedAt;
 }
 
 sealed class ClaudeParseResult {}
@@ -40,7 +42,8 @@ class ClaudeService {
   static String get _systemPrompt {
     final types =
         CatEventType.values.map((t) => '"${t.storageKey}"').join(' | ');
-    return '''You are a cat care logging assistant. Parse the user's voice transcript and extract one or more care events.
+    final now = DateTime.now().toIso8601String();
+    return '''You are a cat care logging assistant. Parse the user's voice transcript and extract one or more care events. The current date/time is $now.
 
 Return ONLY valid JSON in this format:
 {
@@ -48,12 +51,14 @@ Return ONLY valid JSON in this format:
     {
       "event_type": $types,
       "cat_name": "<name if mentioned, else null>",
-      "notes": "<any additional detail mentioned>",
+      "notes": "<any additional detail mentioned, excluding time references>",
+      "logged_at": "<ISO 8601 timestamp if a specific time is mentioned, else null>",
       "metadata": {}
     }
   ]
 }
 
+If the user mentions a time (e.g. "at 10 AM", "this morning", "yesterday", "a couple hours ago"), compute the corresponding ISO 8601 timestamp for logged_at. If no time is mentioned, set logged_at to null.
 If no recognizable event is found, return: { "events": [] }
 Do not include any explanation or text outside the JSON.''';
   }
@@ -130,6 +135,14 @@ Do not include any explanation or text outside the JSON.''';
 
     for (final e in rawEvents) {
       final map = e as Map<String, dynamic>;
+      final loggedAtStr = map['logged_at'] as String?;
+      DateTime? loggedAt;
+      if (loggedAtStr != null) {
+        loggedAt = DateTime.tryParse(loggedAtStr);
+        if (loggedAt != null && loggedAt.isAfter(DateTime.now())) {
+          loggedAt = null;
+        }
+      }
       events.add(ParsedEvent(
         eventType: CatEventTypeX.fromStorageKey(
             map['event_type'] as String? ?? 'note'),
@@ -137,6 +150,7 @@ Do not include any explanation or text outside the JSON.''';
         notes: map['notes'] as String?,
         metadata:
             (map['metadata'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+        loggedAt: loggedAt,
       ));
     }
 

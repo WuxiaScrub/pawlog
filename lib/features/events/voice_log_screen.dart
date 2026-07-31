@@ -548,6 +548,7 @@ class _EditableEvent {
       eventType: parsed.eventType,
       notes: parsed.notes,
       metadata: Map<String, dynamic>.from(parsed.metadata),
+      loggedAt: parsed.loggedAt,
     );
   }
 

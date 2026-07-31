@@ -132,6 +132,8 @@ class TranscriptMatcher {
     );
     final metadata = _extractMetadata(hit.eventType, text);
 
+    if (notes != null && _hasAmbiguousContent(notes)) return null;
+
     return MatchResult(
       eventType: hit.eventType,
       notes: notes,
@@ -147,6 +149,19 @@ class TranscriptMatcher {
     final window = words.length <= 4 ? words : words.sublist(words.length - 4);
     final windowText = window.join(' ');
     return _negationPattern.hasMatch(windowText);
+  }
+
+  static final _ambiguousPattern = RegExp(
+    r"(\d{1,2}\s*(o'?clock|hours?|minutes?|mins?|hrs?))"
+    r'|(ago|last\s+night|this\s+morning|yesterday|before|after|earlier|later)'
+    r'|(because|since|when|while|but|however|although)',
+    caseSensitive: false,
+  );
+
+  bool _hasAmbiguousContent(String notes) {
+    if (_ambiguousPattern.hasMatch(notes)) return true;
+    final words = notes.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    return words.length >= 5;
   }
 
   static final _timePattern = RegExp(
@@ -206,7 +221,8 @@ class TranscriptMatcher {
       RegExp(
         r"^(i\s+|i'?ve\s+|we\s+|we'?ve\s+|she\s+|he\s+)?"
         r'(just\s+|also\s+|already\s+|and\s+|so\s+|then\s+|like\s+)*'
-        r'(the\s+cat\s+|my\s+cat\s+|kitty\s+|the\s+)?',
+        r'(did\s+|gave\s+(her|him|them|the\s+cat)\s+|put\s+(out\s+)?)?'
+        r'(the\s+cat\s+|my\s+cat\s+|kitty\s+|the\s+|a\s+)?',
         caseSensitive: false,
       ),
       '',

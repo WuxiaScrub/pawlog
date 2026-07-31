@@ -121,9 +121,13 @@ void main() {
     });
 
     test('matches "got sick"', () {
-      final r = matcher.tryMatch('she got sick after eating');
+      final r = matcher.tryMatch('she got sick');
       expect(r, isNotNull);
       expect(r!.eventType, CatEventType.vomit);
+    });
+
+    test('falls through to API for "got sick after eating"', () {
+      expect(matcher.tryMatch('she got sick after eating'), isNull);
     });
 
     test('matches "being sick"', () {
@@ -441,6 +445,37 @@ void main() {
       final r = matcher.tryMatch('changed the water');
       expect(r, isNotNull);
       expect(r!.loggedAt, isNull);
+    });
+  });
+
+  group('ambiguous content falls through to API', () {
+    test('falls through for time-like phrases matcher cannot parse', () {
+      expect(
+        matcher.tryMatch('scooped the litter a couple hours ago'),
+        isNull,
+      );
+    });
+
+    test('falls through for "because" clauses', () {
+      expect(
+        matcher.tryMatch('changed the water because it was dirty'),
+        isNull,
+      );
+    });
+
+    test('falls through for long remaining text', () {
+      expect(
+        matcher.tryMatch(
+          'scooped the litter and noticed something weird in the corner',
+        ),
+        isNull,
+      );
+    });
+
+    test('keeps short clear notes locally', () {
+      final r = matcher.tryMatch('she puked on the carpet');
+      expect(r, isNotNull);
+      expect(r!.notes, 'on the carpet');
     });
   });
 
