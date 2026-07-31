@@ -100,12 +100,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         return;
       }
 
+      if (Platform.isIOS) {
+        await supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: 'io.supabase.pawlog://login-callback',
+          authFlowType: AuthFlowType.pkce,
+        );
+        await clearAuthSkipped();
+        return;
+      }
+
       final googleSignIn = GoogleSignIn(
-        clientId: Platform.isIOS
-            ? _iosClientId
-            : Platform.isAndroid
-                ? _androidClientId
-                : null,
+        clientId: Platform.isAndroid ? _androidClientId : null,
         serverClientId: _webClientId,
       );
       final googleUser = await googleSignIn.signIn();
