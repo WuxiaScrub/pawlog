@@ -121,9 +121,13 @@ void main() {
     });
 
     test('matches "got sick"', () {
-      final r = matcher.tryMatch('she got sick after eating');
+      final r = matcher.tryMatch('she got sick');
       expect(r, isNotNull);
       expect(r!.eventType, CatEventType.vomit);
+    });
+
+    test('falls through to API for "got sick after eating"', () {
+      expect(matcher.tryMatch('she got sick after eating'), isNull);
     });
 
     test('matches "being sick"', () {
@@ -399,6 +403,82 @@ void main() {
     });
   });
 
+  group('time extraction', () {
+    test('parses "at 10 AM" and sets loggedAt', () {
+      final r = matcher.tryMatch('changed the water at 10 AM');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.waterChange);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 10);
+      expect(r!.loggedAt!.minute, 0);
+      expect(r!.notes, isNull);
+    });
+
+    test('parses "at 2:30 PM"', () {
+      final r = matcher.tryMatch('scooped the litter at 2:30 PM');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 14);
+      expect(r!.loggedAt!.minute, 30);
+    });
+
+    test('parses "at 10 AM this morning"', () {
+      final r = matcher.tryMatch('I changed the water at 10 AM this morning');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 10);
+      expect(r!.notes, isNull);
+    });
+
+    test('parses "yesterday at 3 PM"', () {
+      final r = matcher.tryMatch('fed the cat yesterday at 3 PM');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNotNull);
+      expect(r!.loggedAt!.hour, 15);
+      final now = DateTime.now();
+      final yesterday = DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 1));
+      expect(r!.loggedAt!.day, yesterday.day);
+    });
+
+    test('returns null loggedAt when no time mentioned', () {
+      final r = matcher.tryMatch('changed the water');
+      expect(r, isNotNull);
+      expect(r!.loggedAt, isNull);
+    });
+  });
+
+  group('ambiguous content falls through to API', () {
+    test('falls through for time-like phrases matcher cannot parse', () {
+      expect(
+        matcher.tryMatch('scooped the litter a couple hours ago'),
+        isNull,
+      );
+    });
+
+    test('falls through for "because" clauses', () {
+      expect(
+        matcher.tryMatch('changed the water because it was dirty'),
+        isNull,
+      );
+    });
+
+    test('falls through for long remaining text', () {
+      expect(
+        matcher.tryMatch(
+          'scooped the litter and noticed something weird in the corner',
+        ),
+        isNull,
+      );
+    });
+
+    test('keeps short clear notes locally', () {
+      final r = matcher.tryMatch('she puked on the carpet');
+      expect(r, isNotNull);
+      expect(r!.notes, 'on the carpet');
+    });
+  });
+
   group('no match fallback', () {
     test('returns null for empty string', () {
       expect(matcher.tryMatch(''), isNull);
@@ -421,6 +501,25 @@ void main() {
 
     test('strips leading filler words', () {
       final r = matcher.tryMatch('I just scooped the litter');
+      expect(r!.notes, isNull);
+    });
+
+    test('strips "I" from "I changed the water"', () {
+      final r = matcher.tryMatch('I changed the water');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.waterChange);
+      expect(r!.notes, isNull);
+    });
+
+    test('strips "I just" from "I just changed the water"', () {
+      final r = matcher.tryMatch('I just changed the water');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
+    test('strips "we" and trailing filler', () {
+      final r = matcher.tryMatch('we scooped the litter today');
+      expect(r, isNotNull);
       expect(r!.notes, isNull);
     });
 

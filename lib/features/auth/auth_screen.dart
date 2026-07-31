@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -80,10 +81,26 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       if (Platform.isIOS) {
+        final completer = Completer<void>();
+        late final StreamSubscription<AuthState> sub;
+        sub = supabase.auth.onAuthStateChange.listen((data) {
+          if (data.event == AuthChangeEvent.signedIn) {
+            sub.cancel();
+            if (!completer.isCompleted) completer.complete();
+          }
+        });
+
         await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: 'io.supabase.pawlog://login-callback',
         );
+
+        await completer.future.timeout(
+          const Duration(minutes: 2),
+          onTimeout: () => sub.cancel(),
+        );
+
+        if (mounted) Navigator.of(context).pop(true);
         return;
       }
 
