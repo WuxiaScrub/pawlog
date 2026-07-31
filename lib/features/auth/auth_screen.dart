@@ -83,7 +83,6 @@ class _AuthScreenState extends State<AuthScreen> {
         await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: 'io.supabase.pawlog://login-callback',
-          authFlowType: AuthFlowType.pkce,
         );
         return;
       }
