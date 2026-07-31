@@ -63,6 +63,12 @@
 				<string>com.googleusercontent.apps.91727702481-d5e8sjm6uhfoaaegm3qp6aksc9bcturn</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.pawlog</string>
+			</array>
+		</dict>
 	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
