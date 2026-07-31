@@ -424,6 +424,25 @@ void main() {
       expect(r!.notes, isNull);
     });
 
+    test('strips "I" from "I changed the water"', () {
+      final r = matcher.tryMatch('I changed the water');
+      expect(r, isNotNull);
+      expect(r!.eventType, CatEventType.waterChange);
+      expect(r!.notes, isNull);
+    });
+
+    test('strips "I just" from "I just changed the water"', () {
+      final r = matcher.tryMatch('I just changed the water');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
+    test('strips "we" and trailing filler', () {
+      final r = matcher.tryMatch('we scooped the litter today');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
     test('preserves meaningful extra text', () {
       final r = matcher.tryMatch('scooped the litter it was smelly');
       expect(r, isNotNull);

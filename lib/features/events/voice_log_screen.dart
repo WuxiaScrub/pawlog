@@ -1,12 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/claude_service.dart';
 import '../../core/stt_service.dart';
+import '../../core/tts_service.dart';
 import '../../core/transcript_matcher.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/voice_provider.dart';
+
+const _autoConfirmTypes = {
+  CatEventType.litterScoop,
+  CatEventType.litterChange,
+  CatEventType.waterChange,
+  CatEventType.hairball,
+  CatEventType.feeding,
+};
 
 class VoiceLogScreen extends ConsumerStatefulWidget {
   const VoiceLogScreen({super.key, required this.catId});
@@ -103,15 +114,22 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
 
     final localMatch = _matcher.tryMatch(transcript);
     if (localMatch != null) {
+      final event = _EditableEvent(
+        eventType: localMatch.eventType,
+        notes: localMatch.notes,
+        metadata: Map<String, dynamic>.from(localMatch.metadata),
+      );
+
+      final isSimple = _autoConfirmTypes.contains(localMatch.eventType) &&
+          (localMatch.notes == null || localMatch.notes!.isEmpty);
+      if (isSimple) {
+        await _autoSave(event);
+        return;
+      }
+
       setState(() {
         _phase = _Phase.confirm;
-        _events = [
-          _EditableEvent(
-            eventType: localMatch.eventType,
-            notes: localMatch.notes,
-            metadata: Map<String, dynamic>.from(localMatch.metadata),
-          ),
-        ];
+        _events = [event];
       });
       return;
     }
@@ -144,6 +162,27 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
           _errorMessage = message;
         });
     }
+  }
+
+  Future<void> _autoSave(_EditableEvent event) async {
+    final repo = ref.read(eventsRepositoryProvider);
+    final metadata = _buildMetadata(event);
+    await repo.logEvent(
+      catId: widget.catId,
+      eventType: event.eventType,
+      notes: event.notes?.trim().isEmpty == true ? null : event.notes,
+      metadata: metadata.isEmpty ? null : metadata,
+    );
+    if (!mounted) return;
+
+    final label = event.eventType.label;
+    final tts = ref.read(ttsServiceProvider);
+    unawaited(tts.speak('Logged $label.'));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Logged $label.')),
+    );
+    Navigator.of(context).pop();
   }
 
   void _showNoEventsDialog(String transcript) {

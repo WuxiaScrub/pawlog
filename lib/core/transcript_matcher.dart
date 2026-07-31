@@ -148,15 +148,19 @@ class TranscriptMatcher {
 
     remaining = remaining.replaceFirst(
       RegExp(
-        r'^(i\s+)?(just\s+|also\s+|and\s+|so\s+|then\s+)*'
-        r'(the\s+cat\s+|my\s+cat\s+|kitty\s+)?',
+        r"^(i\s+|i'?ve\s+|we\s+|we'?ve\s+|she\s+|he\s+)?"
+        r'(just\s+|also\s+|already\s+|and\s+|so\s+|then\s+|like\s+)*'
+        r'(the\s+cat\s+|my\s+cat\s+|kitty\s+|the\s+)?',
         caseSensitive: false,
       ),
       '',
     );
 
     remaining = remaining.replaceFirst(
-      RegExp(r'\s*(and|so|then|also)\s*$', caseSensitive: false),
+      RegExp(
+        r'\s*(and|so|then|also|now|today|already|again|too|though)\s*$',
+        caseSensitive: false,
+      ),
       '',
     );
 
