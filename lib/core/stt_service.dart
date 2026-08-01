@@ -41,13 +41,18 @@ class SttService {
     state = SttState.listening;
 
     await _speech.listen(
-      onResult: (SpeechRecognitionResult result) {
+      onResult: (SpeechRecognitionResult result) async {
         transcript = result.recognizedWords;
         if (result.finalResult) {
           _cancelCutoff();
           if (!_delivered) {
             _delivered = true;
             state = SttState.done;
+            // Release the recogniser before handing the transcript on. On iOS
+            // the plugin otherwise keeps the shared AVAudioSession in a
+            // recording category, which swallows the start of any TTS
+            // confirmation the caller plays.
+            await stop();
             onFinal(transcript);
           }
         } else {
@@ -58,13 +63,12 @@ class SttService {
       listenMode: ListenMode.dictation,
     );
 
-    _hardCutoff = Timer(const Duration(seconds: 30), () {
-      stop();
-      if (!_delivered) {
-        _delivered = true;
-        state = SttState.done;
-        onFinal(transcript);
-      }
+    _hardCutoff = Timer(const Duration(seconds: 30), () async {
+      if (_delivered) return;
+      _delivered = true;
+      state = SttState.done;
+      await stop();
+      onFinal(transcript);
     });
   }
 

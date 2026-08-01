@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import '../../core/local_photo.dart';
 import '../../core/photo_storage.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
+import '../../providers/voice_provider.dart';
 
 /// Shows the log-event sheet. Pass [existingEvent] to edit an already-logged
 /// event in place instead of creating a new one.
@@ -230,6 +232,13 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
     }
 
     if (mounted) {
+      final tts = ref.read(ttsServiceProvider);
+      unawaited(tts.speak(
+        existing != null
+            ? 'Updated ${widget.eventType.label.toLowerCase()}.'
+            : 'Logged ${widget.eventType.label.toLowerCase()}.',
+      ));
+
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
