@@ -368,3 +368,81 @@ CREATE TABLE cat_invites (
 - **Offline-first consideration** — queue failed Supabase writes locally and sync when connection restores.
 - **Privacy** — voice audio is never stored. Only the parsed text transcript (and then only the metadata) is saved to the database.
 
+---
+
+## Tech Debt / Scheduled Maintenance
+
+### Upgrade `google_sign_in` 6.x → 7.x (deferred)
+
+**Status:** deferred, not urgent. Do this as maintenance, not as a feature.
+
+**Why it's deferred.** On iOS, `google_sign_in` 6.3.0 wraps Google's native SDK
+(`GoogleSignIn` pod `~> 8.0`), which embeds a `nonce` claim in the ID token but
+never exposes the raw value through the Dart API. `supabase.auth.signInWithIdToken`
+therefore sends no `nonce` parameter, and GoTrue rejects the token with
+*"Passed nonce and nonce in id_token should either both exist or not."*
+
+We worked around this by enabling **Skip Nonce Checks** in the Supabase Dashboard
+(Authentication → Providers → Google). For local dev, set
+`auth.external.google.skip_nonce_check = true` in `config.toml`.
+
+**Security impact of the workaround.** It removes replay protection on the
+ID-token grant: an attacker holding a valid, unexpired Google ID token minted for
+our client ID (~1 hour window) can exchange it for a session. Exploiting it
+essentially requires the device or app to already be compromised. The setting is
+provider-wide, so it also relaxes web and Android sign-in, not just iOS.
+
+**What the upgrade buys.** `google_sign_in` 7.x exposes a nonce, so we can turn
+nonce validation back on:
+```dart
+final rawNonce = supabase.auth.generateRawNonce();
+await GoogleSignIn.instance.initialize(
+  clientId: iosClientId, serverClientId: webClientId, nonce: rawNonce);
+final account = await GoogleSignIn.instance.authenticate();
+await supabase.auth.signInWithIdToken(
+  provider: OAuthProvider.google,
+  idToken: account.authentication.idToken!,
+  nonce: rawNonce,
+);
+```
+Then turn **Skip Nonce Checks** back off.
+
+**Migration cost — it's a breaking rewrite, not a version bump.** Touches
+`welcome_screen.dart`, `auth_screen.dart`, `settings_screen.dart`:
+- `GoogleSignIn(clientId:, serverClientId:)` constructor is gone → singleton
+  `GoogleSignIn.instance.initialize(...)`. Note `initialize()` re-subscribes to the
+  auth-events stream on each call, so it must not be called per button tap — which
+  conflicts with wanting a fresh nonce per attempt. Resolve deliberately.
+- `signIn()` → `authenticate()`, which **throws** `GoogleSignInException` on user
+  cancellation instead of returning `null`. The `if (googleUser == null)` bail-outs
+  become catches.
+- `accessToken` is gone from `GoogleSignInAuthentication` (ID token only; access
+  tokens moved to `authorizationClient`). Drop the `accessToken:` argument from the
+  `signInWithIdToken` calls — it's optional on Supabase's side.
+- iOS deployment target: plugin needs 12.0, project is at 13.0. No change needed.
+
+**What the upgrade does NOT fix.** Account-picker behavior is identical in 6.x and
+7.x. `authenticate({scopeHint})` has no account-selection control, and neither
+version can set `prompt=select_account`. See the note below.
+
+### Google account picker sometimes reuses the last account
+
+Google's native iOS SDK presents its account chooser in an
+`ASWebAuthenticationSession` — a system web-auth sheet hosted inside the app (this
+is the *native* flow; Google forbids collecting Google credentials in native
+fields). That sheet shares **Safari's cookie store**. `signOut()` clears only the
+app's local token cache (`[self.signIn signOut]`), never that cookie, so if exactly
+one Google account is live in the shared session, Google completes sign-in silently
+without drawing the chooser.
+
+**Mitigation in place:** Settings → Sign out calls `disconnect()` rather than
+`signOut()`, which revokes the OAuth grant server-side and forces Google to
+re-prompt regardless of the cookie. Trade-off: the user re-consents to scopes on
+next sign-in.
+
+Secondary, narrower cause — `GoogleSignIn.signIn()` in 6.x passes
+`canSkipCall: true`, so `_addMethodCall` returns the cached `_currentUser` without
+a native call. Our screens construct a fresh `GoogleSignIn(...)` per tap
+(`_lastMethodCall == null`), which bypasses that branch, so it only bites on a
+second tap within the same screen instance.
+

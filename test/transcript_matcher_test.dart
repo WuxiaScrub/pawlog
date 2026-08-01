@@ -534,5 +534,23 @@ void main() {
       expect(r, isNotNull);
       expect(r!.notes, contains('Persian Rug'));
     });
+
+    test('drops a bare container noun left over by the match', () {
+      final r = matcher.tryMatch('scooping the litter box');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
+    test('drops a bare container noun after a water change', () {
+      final r = matcher.tryMatch('changed the water bowl');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
+    test('keeps a container noun that carries meaning', () {
+      final r = matcher.tryMatch('changed the water bowl is cracked');
+      expect(r, isNotNull);
+      expect(r!.notes, 'bowl is cracked');
+    });
   });
 }

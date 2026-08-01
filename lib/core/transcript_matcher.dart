@@ -164,6 +164,15 @@ class TranscriptMatcher {
     return words.length >= 5;
   }
 
+  /// Matches leftovers that are nothing but a container noun, optionally with
+  /// an article — "box", "the litter tray", "his water bowl".
+  static final _bareContainerPattern = RegExp(
+    r'^(the\s+|his\s+|her\s+|their\s+|my\s+)?'
+    r'(litt?er\s+|litre\s+|water\s+|food\s+|cat\s+)?'
+    r'(box(es)?|tray|bowl|dish|fountain|pan)$',
+    caseSensitive: false,
+  );
+
   static final _timePattern = RegExp(
     r'(yesterday\s+)?'
     r'(?:at\s+|around\s+)?'
@@ -247,6 +256,12 @@ class TranscriptMatcher {
 
     remaining = remaining.replaceAll(RegExp(r'\s{2,}'), ' ');
     remaining = remaining.replaceAll(RegExp(r'^[,.\s;:!]+|[,.\s;:!]+$'), '');
+
+    // The event patterns stop at the noun ("scooped the litter"), so a phrase
+    // like "scooped the litter box" leaves a bare container word behind. Drop
+    // it when that is all that is left — but only then, so a real note such as
+    // "water bowl is cracked" keeps its subject.
+    if (_bareContainerPattern.hasMatch(remaining)) return null;
 
     return remaining.isEmpty ? null : remaining;
   }

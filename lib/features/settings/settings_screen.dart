@@ -201,7 +201,14 @@ class _AccountSectionState extends ConsumerState<_AccountSection> {
                   if (confirmed == true) {
                     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
                       try {
-                        await GoogleSignIn().signOut();
+                        // disconnect(), not signOut(): Google's iOS SDK signs
+                        // in through a web-auth sheet backed by Safari's
+                        // cookie store, and signOut() clears only our local
+                        // token cache. With the cookie still live, the next
+                        // sign-in silently reuses the same account instead of
+                        // showing the picker. disconnect() revokes the grant
+                        // server-side, so Google always re-prompts.
+                        await GoogleSignIn().disconnect();
                       } catch (_) {}
                     }
                     await supabase.auth.signOut();

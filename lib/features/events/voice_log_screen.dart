@@ -11,13 +11,17 @@ import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/voice_provider.dart';
 
-const _autoConfirmTypes = {
-  CatEventType.litterScoop,
-  CatEventType.litterChange,
-  CatEventType.waterChange,
-  CatEventType.hairball,
-  CatEventType.feeding,
-};
+/// Whether a parsed batch can be saved without stopping at the confirmation
+/// screen. Anything the parser resolved confidently is auto-saved so the whole
+/// voice flow stays hands-free — tap, speak, hear it logged. The one exception
+/// is a general note, where the transcript *is* the content: an empty one is
+/// not worth saving silently.
+bool _canAutoSave(List<_EditableEvent> events) {
+  if (events.isEmpty) return false;
+  return events.every((e) =>
+      e.eventType != CatEventType.note ||
+      (e.notes != null && e.notes!.trim().isNotEmpty));
+}
 
 class VoiceLogScreen extends ConsumerStatefulWidget {
   const VoiceLogScreen({super.key, required this.catId});
@@ -36,6 +40,10 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
   String? _errorMessage;
   List<_EditableEvent> _events = [];
   bool _saving = false;
+
+  /// How many times we have asked the user to repeat themselves this session.
+  int _retryCount = 0;
+  static const _maxRetries = 1;
 
   late final AnimationController _pulseController;
 
@@ -114,23 +122,23 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
 
     final localMatch = _matcher.tryMatch(transcript);
     if (localMatch != null) {
-      final event = _EditableEvent(
-        eventType: localMatch.eventType,
-        notes: localMatch.notes,
-        metadata: Map<String, dynamic>.from(localMatch.metadata),
-        loggedAt: localMatch.loggedAt,
-      );
+      final events = [
+        _EditableEvent(
+          eventType: localMatch.eventType,
+          notes: localMatch.notes,
+          metadata: Map<String, dynamic>.from(localMatch.metadata),
+          loggedAt: localMatch.loggedAt,
+        ),
+      ];
 
-      final isSimple = _autoConfirmTypes.contains(localMatch.eventType) &&
-          (localMatch.notes == null || localMatch.notes!.isEmpty);
-      if (isSimple) {
-        await _autoSave(event);
+      if (_canAutoSave(events)) {
+        await _autoSave(events);
         return;
       }
 
       setState(() {
         _phase = _Phase.confirm;
-        _events = [event];
+        _events = events;
       });
       return;
     }
@@ -150,18 +158,17 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
     switch (result) {
       case ClaudeParseSuccess(:final events):
         if (events.isEmpty) {
-          _showNoEventsDialog(transcript);
+          await _handleUnrecognized(transcript);
           return;
         }
-        if (events.length == 1 &&
-            _autoConfirmTypes.contains(events.first.eventType) &&
-            (events.first.notes == null || events.first.notes!.trim().isEmpty)) {
-          await _autoSave(_EditableEvent.fromParsed(events.first));
+        final editable = events.map(_EditableEvent.fromParsed).toList();
+        if (_canAutoSave(editable)) {
+          await _autoSave(editable);
           return;
         }
         setState(() {
           _phase = _Phase.confirm;
-          _events = events.map(_EditableEvent.fromParsed).toList();
+          _events = editable;
         });
       case ClaudeParseError(:final message):
         setState(() {
@@ -171,26 +178,74 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
     }
   }
 
-  Future<void> _autoSave(_EditableEvent event) async {
-    final repo = ref.read(eventsRepositoryProvider);
-    final metadata = _buildMetadata(event);
-    await repo.logEvent(
-      catId: widget.catId,
-      eventType: event.eventType,
-      notes: event.notes?.trim().isEmpty == true ? null : event.notes,
-      metadata: metadata.isEmpty ? null : metadata,
-      loggedAt: event.loggedAt,
-    );
+  Future<void> _autoSave(List<_EditableEvent> events) async {
+    await _persist(events);
     if (!mounted) return;
+    _confirmAndClose(events);
+  }
 
-    final label = event.eventType.label;
+  Future<void> _persist(List<_EditableEvent> events) async {
+    final repo = ref.read(eventsRepositoryProvider);
+    for (final event in events) {
+      final metadata = _buildMetadata(event);
+      await repo.logEvent(
+        catId: widget.catId,
+        eventType: event.eventType,
+        notes: event.notes?.trim().isEmpty == true ? null : event.notes,
+        metadata: metadata.isEmpty ? null : metadata,
+        loggedAt: event.loggedAt,
+      );
+    }
+  }
+
+  /// Speaks the confirmation, shows the snackbar, and closes the screen.
+  ///
+  /// Every save path in the voice flow routes through here, so audio feedback
+  /// is a property of saving rather than of one shortcut through the flow.
+  /// Tap-logging deliberately stays silent: the user is already looking at the
+  /// screen and the snackbar is confirmation enough.
+  void _confirmAndClose(List<_EditableEvent> events) {
     final tts = ref.read(ttsServiceProvider);
-    unawaited(tts.speak('Logged $label.'));
+    // Deliberately not awaited: the screen should close straight away.
+    // speakAfterMic waits out the iOS audio-route switch by itself, and the
+    // service is a plain provider, so it outlives this widget.
+    unawaited(tts.speakAfterMic(_spokenSummary(events)));
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Logged $label.')),
+      SnackBar(
+        content: Text(
+          events.length == 1
+              ? 'Logged ${events.first.eventType.label}.'
+              : '${events.length} events logged.',
+        ),
+      ),
     );
     Navigator.of(context).pop();
+  }
+
+  String _spokenSummary(List<_EditableEvent> events) {
+    final labels =
+        events.map((e) => e.eventType.label.toLowerCase()).toList();
+    if (labels.length == 1) return 'Logged ${labels.first}.';
+    final last = labels.removeLast();
+    return 'Logged ${labels.join(', ')} and $last.';
+  }
+
+  /// Nothing recognisable came back. Ask once, out loud, for a repeat before
+  /// falling back to the save-as-note prompt.
+  Future<void> _handleUnrecognized(String transcript) async {
+    if (_retryCount >= _maxRetries) {
+      _showNoEventsDialog(transcript);
+      return;
+    }
+    _retryCount++;
+
+    final tts = ref.read(ttsServiceProvider);
+    // Awaited, unlike the confirmation: the mic must not reopen while the
+    // prompt is still playing or the recogniser transcribes our own voice.
+    await tts.speakAfterMic("Sorry, I didn't catch that. Please say it again.");
+    if (!mounted) return;
+    await _startListening();
   }
 
   void _showNoEventsDialog(String transcript) {
@@ -231,27 +286,9 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
 
   Future<void> _saveAll() async {
     setState(() => _saving = true);
-    final repo = ref.read(eventsRepositoryProvider);
-
-    for (final event in _events) {
-      final metadata = _buildMetadata(event);
-      await repo.logEvent(
-        catId: widget.catId,
-        eventType: event.eventType,
-        notes: event.notes?.trim().isEmpty == true ? null : event.notes,
-        metadata: metadata.isEmpty ? null : metadata,
-        loggedAt: event.loggedAt,
-      );
-    }
-
+    await _persist(_events);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            '${_events.length} ${_events.length == 1 ? 'event' : 'events'} logged.'),
-      ),
-    );
-    Navigator.of(context).pop();
+    _confirmAndClose(_events);
   }
 
   Map<String, dynamic> _buildMetadata(_EditableEvent event) {
