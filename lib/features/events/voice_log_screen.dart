@@ -153,6 +153,12 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
           _showNoEventsDialog(transcript);
           return;
         }
+        if (events.length == 1 &&
+            _autoConfirmTypes.contains(events.first.eventType) &&
+            (events.first.notes == null || events.first.notes!.trim().isEmpty)) {
+          await _autoSave(_EditableEvent.fromParsed(events.first));
+          return;
+        }
         setState(() {
           _phase = _Phase.confirm;
           _events = events.map(_EditableEvent.fromParsed).toList();
