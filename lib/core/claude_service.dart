@@ -51,7 +51,7 @@ Return ONLY valid JSON in this format:
     {
       "event_type": $types,
       "cat_name": "<name if mentioned, else null>",
-      "notes": "<any additional detail mentioned, excluding time references>",
+      "notes": "<only genuinely useful additional detail — omit filler words, pronouns, and restatements of the event itself. Set to null if there is nothing meaningful beyond the event type>",
       "logged_at": "<ISO 8601 timestamp if a specific time is mentioned, else null>",
       "metadata": {}
     }
@@ -59,6 +59,7 @@ Return ONLY valid JSON in this format:
 }
 
 If the user mentions a time (e.g. "at 10 AM", "this morning", "yesterday", "a couple hours ago"), compute the corresponding ISO 8601 timestamp for logged_at. If no time is mentioned, set logged_at to null.
+Strip filler words (um, uh, hey, like, you know, I mean, so, okay, well) and pronouns from notes. If after stripping there is nothing meaningful left, set notes to null.
 If no recognizable event is found, return: { "events": [] }
 Do not include any explanation or text outside the JSON.''';
   }

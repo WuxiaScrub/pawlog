@@ -219,7 +219,8 @@ class TranscriptMatcher {
 
     remaining = remaining.replaceFirst(
       RegExp(
-        r"^(i\s+|i'?ve\s+|we\s+|we'?ve\s+|she\s+|he\s+)?"
+        r'(hey\s+|hi\s+|oh\s+|ah\s+|ok(ay)?\s+|well\s+|yeah\s+|yep\s+|yo\s+|um+\s+|uh+\s+|er+\s+|hm+\s+|hmm+\s+)*'
+        r"(i\s+|i'?ve\s+|we\s+|we'?ve\s+|she\s+|he\s+|it'?s\s+)?"
         r'(just\s+|also\s+|already\s+|and\s+|so\s+|then\s+|like\s+)*'
         r'(did\s+|gave\s+(her|him|them|the\s+cat)\s+|put\s+(out\s+)?)?'
         r'(the\s+cat\s+|my\s+cat\s+|kitty\s+|the\s+|a\s+)?',
@@ -230,12 +231,21 @@ class TranscriptMatcher {
 
     remaining = remaining.replaceFirst(
       RegExp(
-        r'\s*(and|so|then|also|now|today|already|again|too|though)\s*$',
+        r'\s*(and|so|then|also|now|today|already|again|too|though|okay|ok|yeah|yep|right)\s*$',
         caseSensitive: false,
       ),
       '',
     );
 
+    remaining = remaining.replaceAll(
+      RegExp(
+        r'\b(um+|uh+|er+|hm+|hmm+|like|you\s+know|i\s+mean|sort\s+of|kind\s+of)\b',
+        caseSensitive: false,
+      ),
+      '',
+    );
+
+    remaining = remaining.replaceAll(RegExp(r'\s{2,}'), ' ');
     remaining = remaining.replaceAll(RegExp(r'^[,.\s;:!]+|[,.\s;:!]+$'), '');
 
     return remaining.isEmpty ? null : remaining;
