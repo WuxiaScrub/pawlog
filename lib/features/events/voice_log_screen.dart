@@ -200,8 +200,10 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
 
   /// Speaks the confirmation, shows the snackbar, and closes the screen.
   ///
-  /// Every save path routes through here so audio feedback is a property of
-  /// saving rather than of one shortcut through the flow.
+  /// Every save path in the voice flow routes through here, so audio feedback
+  /// is a property of saving rather than of one shortcut through the flow.
+  /// Tap-logging deliberately stays silent: the user is already looking at the
+  /// screen and the snackbar is confirmation enough.
   void _confirmAndClose(List<_EditableEvent> events) {
     final tts = ref.read(ttsServiceProvider);
     // Deliberately not awaited: the screen should close straight away.
