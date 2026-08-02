@@ -55,8 +55,55 @@ class EventDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () async {
-              await ref.read(eventsRepositoryProvider).deleteEvent(current.id);
-              if (context.mounted) Navigator.of(context).pop();
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete event?'),
+                  content: const Text(
+                      'This will remove the log entry. You can undo this for a few seconds after deleting.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true || !context.mounted) return;
+
+              final repo = ref.read(eventsRepositoryProvider);
+              final deletedEvent = current;
+              final deletedType = type;
+              await repo.deleteEvent(deletedEvent.id);
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${deletedType.label} deleted'),
+                  duration: const Duration(seconds: 5),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () {
+                      final meta = deletedEvent.metadataJson != null
+                          ? jsonDecode(deletedEvent.metadataJson!)
+                              as Map<String, dynamic>
+                          : null;
+                      repo.logEvent(
+                        catId: deletedEvent.catId,
+                        eventType: deletedType,
+                        notes: deletedEvent.notes,
+                        metadata: meta,
+                        loggedAt: deletedEvent.loggedAt,
+                      );
+                    },
+                  ),
+                ),
+              );
             },
           ),
         ],

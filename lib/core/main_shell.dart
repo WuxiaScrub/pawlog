@@ -5,7 +5,8 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/events/home_screen.dart';
 import '../features/events/log_history_screen.dart';
 import '../features/settings/settings_screen.dart';
-import '../providers/overdue_provider.dart';
+import '../providers/events_provider.dart';
+import '../providers/notification_settings_provider.dart';
 import 'database.dart';
 import 'notifications_service.dart';
 
@@ -26,12 +27,19 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   void initState() {
     super.initState();
-    // Mirrors the spec's "on app open, check last timestamp per event type"
-    // behavior: fire native reminders once when the home screen loads.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final overdue = ref.read(overdueItemsProvider(widget.cat.id));
-      _notificationsService.notifyOverdue(overdue);
+      _reschedule();
+      ref.listenManual(eventsStreamProvider(widget.cat.id),
+          (_, __) => _reschedule());
+      ref.listenManual(effectiveSettingsProvider, (_, __) => _reschedule());
     });
+  }
+
+  void _reschedule() {
+    final events =
+        ref.read(eventsStreamProvider(widget.cat.id)).value ?? [];
+    final settings = ref.read(effectiveSettingsProvider);
+    _notificationsService.rescheduleAll(events: events, settings: settings);
   }
 
   @override

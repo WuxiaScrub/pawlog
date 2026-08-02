@@ -54,6 +54,8 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   supabase_flutter: ^2.8.0
   google_sign_in: ^6.2.1
+  timezone: ^0.10.0
+  flutter_timezone: ^4.1.1
 
 dev_dependencies:
   flutter_test:

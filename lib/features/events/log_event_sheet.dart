@@ -13,6 +13,17 @@ import '../../core/photo_storage.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 
+const symptomChoices = <String, String>{
+  'lethargy': 'Lethargy / low energy',
+  'loss_of_appetite': 'Loss of appetite',
+  'excessive_thirst': 'Excessive thirst',
+  'sneezing_coughing': 'Sneezing / coughing',
+  'eye_discharge': 'Eye discharge',
+  'limping': 'Limping',
+  'scratching': 'Scratching / skin irritation',
+  'behavioral_change': 'Behavioral change',
+};
+
 /// Shows the log-event sheet. Pass [existingEvent] to edit an already-logged
 /// event in place instead of creating a new one.
 Future<void> showLogEventSheet(
@@ -61,8 +72,13 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
   bool _hairballPresent = false;
   bool _afterEating = false;
   bool _unusualColorOrOdor = false;
+  bool _bloodNoticed = false;
+  bool _diarrhea = false;
+  bool _constipationOrStraining = false;
+  bool _unusualOdorScoop = false;
   bool _firstTime = false;
   bool _weightInLbs = true;
+  final _selectedSymptoms = <String>{};
   bool _saving = false;
   String? _photoPath;
   late DateTime _loggedAt;
@@ -82,7 +98,16 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
     _hairballPresent = metadata['hairball_present'] as bool? ?? false;
     _afterEating = metadata['after_eating'] as bool? ?? false;
     _unusualColorOrOdor = metadata['unusual_color_or_odor'] as bool? ?? false;
+    _bloodNoticed = metadata['blood_noticed'] as bool? ?? false;
+    _diarrhea = metadata['diarrhea'] as bool? ?? false;
+    _constipationOrStraining =
+        metadata['constipation_or_straining'] as bool? ?? false;
+    _unusualOdorScoop = metadata['unusual_odor'] as bool? ?? false;
     _firstTime = metadata['first_time'] as bool? ?? false;
+    final symptoms = metadata['symptoms'];
+    if (symptoms is List) {
+      _selectedSymptoms.addAll(symptoms.cast<String>());
+    }
     _productController.text = metadata['product_name'] as String? ?? '';
     final duration = metadata['duration_minutes'];
     if (duration != null) _durationController.text = duration.toString();
@@ -181,6 +206,14 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
         metadata['after_eating'] = _afterEating;
         if (_photoPath != null) metadata['photo_path'] = _photoPath;
         break;
+      case CatEventType.litterScoop:
+        if (_bloodNoticed) metadata['blood_noticed'] = true;
+        if (_diarrhea) metadata['diarrhea'] = true;
+        if (_constipationOrStraining) {
+          metadata['constipation_or_straining'] = true;
+        }
+        if (_unusualOdorScoop) metadata['unusual_odor'] = true;
+        break;
       case CatEventType.litterChange:
         metadata['unusual_color_or_odor'] = _unusualColorOrOdor;
         break;
@@ -192,6 +225,11 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
       case CatEventType.playtime:
         final minutes = int.tryParse(_durationController.text.trim());
         if (minutes != null) metadata['duration_minutes'] = minutes;
+        break;
+      case CatEventType.symptom:
+        if (_selectedSymptoms.isNotEmpty) {
+          metadata['symptoms'] = _selectedSymptoms.toList();
+        }
         break;
       case CatEventType.weight:
         final raw = double.tryParse(_weightController.text.trim());
@@ -290,6 +328,38 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
               _PhotoPicker(photoPath: _photoPath, onTap: _pickPhoto),
               const SizedBox(height: 8),
             ],
+            if (widget.eventType == CatEventType.litterScoop) ...[
+              const Padding(
+                padding: EdgeInsets.only(top: 4, bottom: 4),
+                child: Text('Anything unusual?',
+                    style: TextStyle(fontWeight: FontWeight.w500)),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Blood noticed'),
+                value: _bloodNoticed,
+                onChanged: (v) => setState(() => _bloodNoticed = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Diarrhea'),
+                value: _diarrhea,
+                onChanged: (v) => setState(() => _diarrhea = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Constipation / straining'),
+                value: _constipationOrStraining,
+                onChanged: (v) =>
+                    setState(() => _constipationOrStraining = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Unusual odor'),
+                value: _unusualOdorScoop,
+                onChanged: (v) => setState(() => _unusualOdorScoop = v),
+              ),
+            ],
             if (widget.eventType == CatEventType.litterChange)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -309,6 +379,27 @@ class _LogEventSheetState extends ConsumerState<LogEventSheet> {
                 value: _firstTime,
                 onChanged: (v) => setState(() => _firstTime = v),
               ),
+            ],
+            if (widget.eventType == CatEventType.symptom) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: symptomChoices.entries.map((e) {
+                  final selected = _selectedSymptoms.contains(e.key);
+                  return FilterChip(
+                    label: Text(e.value),
+                    selected: selected,
+                    onSelected: (v) => setState(() {
+                      if (v) {
+                        _selectedSymptoms.add(e.key);
+                      } else {
+                        _selectedSymptoms.remove(e.key);
+                      }
+                    }),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
             ],
             if (widget.eventType == CatEventType.playtime) ...[
               TextField(

@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/database.dart';
+import '../../features/events/log_event_sheet.dart';
 import '../../models/event_type.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/notification_settings_provider.dart';
@@ -58,6 +61,9 @@ class DashboardScreen extends ConsumerWidget {
             _LastActivitySection(events: events, now: now),
             const SizedBox(height: 24),
             _AverageIntervalSection(events: events),
+            const SizedBox(height: 24),
+            _HealthObservationsSection(
+                events: events, now: now, cat: cat),
             const SizedBox(height: 28),
             Text(
               'Symptom trend (vomiting & hairballs)',
@@ -494,6 +500,93 @@ class _SymptomTrendChartState extends State<_SymptomTrendChart> {
               child: Text('View ${(_selectedRodIndex == 0 ? CatEventType.vomit : CatEventType.hairball).label} Details'),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _HealthObservationsSection extends StatelessWidget {
+  const _HealthObservationsSection({
+    required this.events,
+    required this.now,
+    required this.cat,
+  });
+
+  final List<Event> events;
+  final DateTime now;
+  final Cat cat;
+
+  @override
+  Widget build(BuildContext context) {
+    final weekAgo = now.subtract(const Duration(days: 7));
+    final symptomEvents = events.where((e) {
+      final type = CatEventTypeX.fromStorageKey(e.eventType);
+      return type == CatEventType.symptom && e.loggedAt.isAfter(weekAgo);
+    }).toList();
+
+    final symptomCounts = <String, int>{};
+    for (final event in symptomEvents) {
+      if (event.metadataJson == null) continue;
+      final meta = jsonDecode(event.metadataJson!) as Map<String, dynamic>;
+      final symptoms = meta['symptoms'];
+      if (symptoms is List) {
+        for (final s in symptoms) {
+          symptomCounts[s as String] = (symptomCounts[s] ?? 0) + 1;
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Health observations (last 7 days)',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        if (symptomEvents.isEmpty)
+          Text(
+            'No symptoms logged this week.',
+            style: Theme.of(context).textTheme.bodySmall,
+          )
+        else ...[
+          Text(
+            '${symptomEvents.length} '
+            '${symptomEvents.length == 1 ? 'observation' : 'observations'}',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          if (symptomCounts.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: symptomCounts.entries.map((e) {
+                final label =
+                    symptomChoices[e.key] ?? e.key.replaceAll('_', ' ');
+                return Chip(
+                  label: Text('$label (${e.value})',
+                      style: const TextStyle(fontSize: 12)),
+                  visualDensity: VisualDensity.compact,
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonal(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => LogHistoryScreen(
+                    cat: cat,
+                    initialEventType: CatEventType.symptom,
+                  ),
+                ));
+              },
+              child: const Text('View all observations'),
+            ),
+          ),
+        ],
       ],
     );
   }
