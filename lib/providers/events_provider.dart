@@ -26,7 +26,7 @@ class EventsRepository {
   final AppDatabase _db;
   final SyncService _sync;
 
-  Future<void> logEvent({
+  Future<String> logEvent({
     required String catId,
     required CatEventType eventType,
     String? notes,
@@ -63,6 +63,7 @@ class EventsRepository {
       },
     );
     _sync.triggerSync();
+    return id;
   }
 
   Future<void> updateEvent({

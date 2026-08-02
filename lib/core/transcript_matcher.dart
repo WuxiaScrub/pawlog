@@ -89,6 +89,20 @@ class TranscriptMatcher {
       RegExp(r'\bweight\s+(check|is|was|at)'),
       RegExp(r'\d+(\.\d+)?\s*(lbs?|pounds?|kgs?|kilos?|kilograms?)'),
     ]),
+    _EventRule(CatEventType.symptom, [
+      RegExp(r'letharg(ic|y)'),
+      RegExp(r'(not|won.?t|isn.?t|stopped)\s+eat(ing)?'),
+      RegExp(r'(loss|lost)\s+(of\s+)?appetite'),
+      RegExp(r'(drinking|thirst(y|ier))\s+(a\s+lot|more|excessiv)'),
+      RegExp(r'excessive\s+thirst'),
+      RegExp(r'sneez(ing|es?|ed)'),
+      RegExp(r'cough(ing|ed|s)?'),
+      RegExp(r'eye\s+(discharge|watering|goop|crusty|gunk)'),
+      RegExp(r'limp(ing|s|ed)?'),
+      RegExp(r'scratch(ing|es|ed)?\s+(a\s+lot|himself|herself|constantly)'),
+      RegExp(r'(acting|behaving)\s+(strange|weird|odd|different|off)'),
+      RegExp(r'not\s+(acting\s+)?(like\s+)?(himself|herself|normal)'),
+    ]),
   ];
 
   static final _negationPattern = RegExp(

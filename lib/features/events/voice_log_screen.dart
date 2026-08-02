@@ -23,6 +23,99 @@ bool _canAutoSave(List<_EditableEvent> events) {
       (e.notes != null && e.notes!.trim().isNotEmpty));
 }
 
+// ---------------------------------------------------------------------------
+// Voice follow-up question definitions
+// ---------------------------------------------------------------------------
+
+class _FollowUpQuestion {
+  const _FollowUpQuestion({
+    required this.metadataKey,
+    required this.spokenQuestion,
+    this.isYesNo = true,
+  });
+
+  final String metadataKey;
+  final String spokenQuestion;
+  final bool isYesNo;
+}
+
+const _followUpsByType = <CatEventType, List<_FollowUpQuestion>>{
+  CatEventType.vomit: [
+    _FollowUpQuestion(
+      metadataKey: 'hairball_present',
+      spokenQuestion: 'Did you notice any hairballs?',
+    ),
+    _FollowUpQuestion(
+      metadataKey: 'after_eating',
+      spokenQuestion: 'Was this shortly after eating?',
+    ),
+  ],
+  CatEventType.litterScoop: [
+    _FollowUpQuestion(
+      metadataKey: 'blood_noticed',
+      spokenQuestion: 'Did you notice any blood?',
+    ),
+    _FollowUpQuestion(
+      metadataKey: 'diarrhea',
+      spokenQuestion: 'Was there any diarrhea?',
+    ),
+    _FollowUpQuestion(
+      metadataKey: 'unusual_odor',
+      spokenQuestion: 'Was there an unusual odor?',
+    ),
+  ],
+  CatEventType.litterChange: [
+    _FollowUpQuestion(
+      metadataKey: 'unusual_color_or_odor',
+      spokenQuestion: 'Did you notice any unusual color or odor?',
+    ),
+  ],
+  CatEventType.deworming: [
+    _FollowUpQuestion(
+      metadataKey: 'product_name',
+      spokenQuestion: 'Which product did you use?',
+      isYesNo: false,
+    ),
+    _FollowUpQuestion(
+      metadataKey: 'first_time',
+      spokenQuestion: 'Is this the first time using this product?',
+    ),
+  ],
+  CatEventType.fleaTreatment: [
+    _FollowUpQuestion(
+      metadataKey: 'product_name',
+      spokenQuestion: 'Which product did you use?',
+      isYesNo: false,
+    ),
+    _FollowUpQuestion(
+      metadataKey: 'first_time',
+      spokenQuestion: 'Is this the first time using this product?',
+    ),
+  ],
+};
+
+List<_FollowUpQuestion> _pendingFollowUps(_EditableEvent event) {
+  final all = _followUpsByType[event.eventType];
+  if (all == null) return [];
+  return all
+      .where((q) => !event.metadata.containsKey(q.metadataKey))
+      .take(3)
+      .toList();
+}
+
+final _yesPattern = RegExp(
+  r'\b(yes|yeah|yep|yup|uh huh|correct|right|definitely|absolutely|sure|did|was|it was)\b',
+  caseSensitive: false,
+);
+final _noPattern = RegExp(
+  r"\b(no|nope|nah|not|negative|didn'?t|don'?t|wasn'?t|none)\b",
+  caseSensitive: false,
+);
+final _stopPattern = RegExp(
+  r"\b(that'?s\s*(it|all|everything)|done|nothing\s*(else)?|no\s+more|skip|stop|finish|all\s+done)\b",
+  caseSensitive: false,
+);
+
 class VoiceLogScreen extends ConsumerStatefulWidget {
   const VoiceLogScreen({super.key, required this.catId});
 
@@ -44,6 +137,13 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
   /// How many times we have asked the user to repeat themselves this session.
   int _retryCount = 0;
   static const _maxRetries = 1;
+
+  // Follow-up state
+  String? _savedEventId;
+  List<_FollowUpQuestion> _followUpQuestions = [];
+  int _followUpIndex = 0;
+  bool _followUpListening = false;
+  String _followUpPartial = '';
 
   late final AnimationController _pulseController;
 
@@ -179,23 +279,157 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
   }
 
   Future<void> _autoSave(List<_EditableEvent> events) async {
+    if (events.length == 1) {
+      final questions = _pendingFollowUps(events.first);
+      if (questions.isNotEmpty) {
+        await _enterFollowUp(events, questions);
+        return;
+      }
+    }
     await _persist(events);
     if (!mounted) return;
     _confirmAndClose(events);
   }
 
-  Future<void> _persist(List<_EditableEvent> events) async {
+  Future<void> _enterFollowUp(
+    List<_EditableEvent> events,
+    List<_FollowUpQuestion> questions,
+  ) async {
+    final ids = await _persist(events);
+    if (!mounted) return;
+
+    final tts = ref.read(ttsServiceProvider);
+    final label = events.first.eventType.label.toLowerCase();
+    await tts.speakAfterMic('Got it, logged $label.');
+    if (!mounted) return;
+
+    setState(() {
+      _phase = _Phase.followUp;
+      _events = events;
+      _savedEventId = ids.isNotEmpty ? ids.first : null;
+      _followUpQuestions = questions;
+      _followUpIndex = 0;
+      _followUpListening = false;
+      _followUpPartial = '';
+    });
+
+    await _askFollowUpQuestion();
+  }
+
+  Future<void> _askFollowUpQuestion() async {
+    if (!mounted) return;
+    if (_followUpIndex >= _followUpQuestions.length) {
+      _finishFollowUp();
+      return;
+    }
+
+    final question = _followUpQuestions[_followUpIndex];
+    final tts = ref.read(ttsServiceProvider);
+
+    setState(() => _followUpListening = false);
+
+    await tts.speak(question.spokenQuestion);
+    if (!mounted) return;
+
+    setState(() {
+      _followUpListening = true;
+      _followUpPartial = '';
+    });
+
+    final stt = ref.read(sttServiceProvider);
+    await stt.startListening(
+      onPartial: (partial) {
+        if (mounted) setState(() => _followUpPartial = partial);
+      },
+      onFinal: (transcript) {
+        if (!mounted) return;
+        _processFollowUpResponse(transcript);
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() => _followUpIndex = _followUpIndex + 1);
+        _askFollowUpQuestion();
+      },
+    );
+  }
+
+  void _processFollowUpResponse(String transcript) {
+    if (transcript.trim().isEmpty) {
+      setState(() => _followUpIndex = _followUpIndex + 1);
+      _askFollowUpQuestion();
+      return;
+    }
+
+    final question = _followUpQuestions[_followUpIndex];
+    final lower = transcript.toLowerCase();
+    final wantsStop = _stopPattern.hasMatch(lower);
+
+    if (question.isYesNo) {
+      final isYes = _yesPattern.hasMatch(lower);
+      final isNo = _noPattern.hasMatch(lower);
+      if (isYes && !isNo) {
+        _events.first.metadata[question.metadataKey] = true;
+      } else if (isNo) {
+        _events.first.metadata[question.metadataKey] = false;
+      }
+    } else {
+      final cleaned = transcript
+          .replaceAll(RegExp(r'\b(um+|uh+|er+|like|you know)\b',
+              caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s{2,}'), ' ')
+          .trim();
+      if (cleaned.isNotEmpty) {
+        _events.first.metadata[question.metadataKey] = cleaned;
+      }
+    }
+
+    if (wantsStop) {
+      _finishFollowUp();
+      return;
+    }
+
+    setState(() => _followUpIndex = _followUpIndex + 1);
+    _askFollowUpQuestion();
+  }
+
+  Future<void> _finishFollowUp() async {
+    if (_savedEventId != null) {
+      final repo = ref.read(eventsRepositoryProvider);
+      final metadata = _buildMetadata(_events.first);
+      await repo.updateEvent(
+        id: _savedEventId!,
+        notes: _events.first.notes,
+        metadata: metadata.isEmpty ? null : metadata,
+      );
+    }
+    if (!mounted) return;
+
+    final tts = ref.read(ttsServiceProvider);
+    unawaited(tts.speak('All logged.'));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Logged ${_events.first.eventType.label}.'),
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  Future<List<String>> _persist(List<_EditableEvent> events) async {
     final repo = ref.read(eventsRepositoryProvider);
+    final ids = <String>[];
     for (final event in events) {
       final metadata = _buildMetadata(event);
-      await repo.logEvent(
+      final id = await repo.logEvent(
         catId: widget.catId,
         eventType: event.eventType,
         notes: event.notes?.trim().isEmpty == true ? null : event.notes,
         metadata: metadata.isEmpty ? null : metadata,
         loggedAt: event.loggedAt,
       );
+      ids.add(id);
     }
+    return ids;
   }
 
   /// Speaks the confirmation, shows the snackbar, and closes the screen.
@@ -297,6 +531,15 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
       case CatEventType.vomit:
         m['hairball_present'] = event.metadata['hairball_present'] ?? false;
         m['after_eating'] = event.metadata['after_eating'] ?? false;
+      case CatEventType.litterScoop:
+        if (event.metadata['blood_noticed'] == true) {
+          m['blood_noticed'] = true;
+        }
+        if (event.metadata['diarrhea'] == true) m['diarrhea'] = true;
+        if (event.metadata['constipation_or_straining'] == true) {
+          m['constipation_or_straining'] = true;
+        }
+        if (event.metadata['unusual_odor'] == true) m['unusual_odor'] = true;
       case CatEventType.litterChange:
         m['unusual_color_or_odor'] =
             event.metadata['unusual_color_or_odor'] ?? false;
@@ -316,6 +559,11 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
           final inLbs = event.metadata['weight_unit'] == 'lb';
           m['weight_unit'] = inLbs ? 'lb' : 'kg';
           m['weight_kg'] = inLbs ? (val as num) * 0.453592 : val;
+        }
+      case CatEventType.symptom:
+        final symptoms = event.metadata['symptoms'];
+        if (symptoms is List && symptoms.isNotEmpty) {
+          m['symptoms'] = symptoms;
         }
       default:
         break;
@@ -343,6 +591,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
         _Phase.listening => _buildListeningPhase(),
         _Phase.processing => _buildProcessingPhase(),
         _Phase.confirm => _buildConfirmPhase(),
+        _Phase.followUp => _buildFollowUpPhase(),
         _Phase.error => _buildErrorPhase(),
       },
     );
@@ -522,6 +771,71 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
     );
   }
 
+  Widget _buildFollowUpPhase() {
+    final total = _followUpQuestions.length;
+    final current = _followUpIndex < total ? _followUpIndex + 1 : total;
+    final question = _followUpIndex < total
+        ? _followUpQuestions[_followUpIndex].spokenQuestion
+        : '';
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _followUpListening ? Icons.mic : Icons.chat_bubble_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Question $current of $total',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              question,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            if (_followUpListening && _followUpPartial.isNotEmpty)
+              Text(
+                _followUpPartial,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            if (_followUpListening && _followUpPartial.isEmpty)
+              Text(
+                'Listening...',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            if (!_followUpListening)
+              const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            const SizedBox(height: 32),
+            TextButton(
+              onPressed: () async {
+                await ref.read(sttServiceProvider).stop();
+                _finishFollowUp();
+              },
+              child: const Text('Skip remaining'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildErrorPhase() {
     return Center(
       child: Padding(
@@ -576,7 +890,7 @@ class _VoiceLogScreenState extends ConsumerState<VoiceLogScreen>
   }
 }
 
-enum _Phase { ready, listening, processing, confirm, error }
+enum _Phase { ready, listening, processing, confirm, followUp, error }
 
 class _EditableEvent {
   _EditableEvent({
@@ -678,6 +992,45 @@ class _EventCard extends StatelessWidget {
             value: event.metadata['after_eating'] == true,
             onChanged: (val) {
               event.metadata['after_eating'] = val;
+              onChanged(event);
+            },
+          ),
+        ];
+      case CatEventType.litterScoop:
+        return [
+          SwitchListTile(
+            dense: true,
+            title: const Text('Blood noticed'),
+            value: event.metadata['blood_noticed'] == true,
+            onChanged: (val) {
+              event.metadata['blood_noticed'] = val;
+              onChanged(event);
+            },
+          ),
+          SwitchListTile(
+            dense: true,
+            title: const Text('Diarrhea'),
+            value: event.metadata['diarrhea'] == true,
+            onChanged: (val) {
+              event.metadata['diarrhea'] = val;
+              onChanged(event);
+            },
+          ),
+          SwitchListTile(
+            dense: true,
+            title: const Text('Constipation / straining'),
+            value: event.metadata['constipation_or_straining'] == true,
+            onChanged: (val) {
+              event.metadata['constipation_or_straining'] = val;
+              onChanged(event);
+            },
+          ),
+          SwitchListTile(
+            dense: true,
+            title: const Text('Unusual odor'),
+            value: event.metadata['unusual_odor'] == true,
+            onChanged: (val) {
+              event.metadata['unusual_odor'] = val;
               onChanged(event);
             },
           ),

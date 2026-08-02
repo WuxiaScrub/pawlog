@@ -25,6 +25,7 @@ const Map<CatEventType, int> defaultThresholdHours = {
   CatEventType.playtime: 0,
   CatEventType.note: 0,
   CatEventType.weight: 0,
+  CatEventType.symptom: 0,
 };
 
 const Set<CatEventType> defaultEnabledTypes = {
