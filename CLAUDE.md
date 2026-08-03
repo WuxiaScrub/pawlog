@@ -1,5 +1,9 @@
 # PawLog — Claude Code Build Guide
 
+## Pre-Push Checklist (MANDATORY)
+
+Before every `git push`, run `flutter pub get` (or `dart pub get` if Flutter CLI is unavailable) and verify it succeeds with no dependency conflicts. Do NOT push if dependency resolution fails. When upgrading any package, check that all transitive dependency constraints are compatible — especially `timezone`, `intl`, and other packages shared between `flutter_local_notifications`, `flutter_timezone`, and other dependencies.
+
 ## Project Summary
 
 PawLog is a cat-care companion app built in Flutter, targeting Android as its first public release. It helps cat owners effortlessly log daily care events via voice or tap, receive smart reminders when care is overdue, and build a rich health history to share with their vet.
