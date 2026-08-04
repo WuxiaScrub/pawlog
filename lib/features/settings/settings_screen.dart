@@ -9,6 +9,7 @@ import '../../core/database.dart';
 import '../../core/supabase_client.dart';
 import '../../models/event_type.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/database_provider.dart';
 import '../../providers/notification_settings_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/voice_provider.dart';
@@ -211,6 +212,8 @@ class _AccountSectionState extends ConsumerState<_AccountSection> {
                         await GoogleSignIn().disconnect();
                       } catch (_) {}
                     }
+                    final db = ref.read(databaseProvider);
+                    await db.clearAllUserData();
                     await supabase.auth.signOut();
                   }
                 },

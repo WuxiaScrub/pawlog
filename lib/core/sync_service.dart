@@ -21,6 +21,7 @@ class SyncService {
 
   static const _storage = FlutterSecureStorage();
   static const _seedKeyPrefix = 'sync_seeded_';
+  static const _lastUserKey = 'last_signed_in_user_id';
 
   bool _processing = false;
   final _waiters = <Completer<SyncResult>>[];
@@ -218,6 +219,116 @@ class SyncService {
             .from(item.targetTable)
             .delete()
             .eq('id', item.recordId);
+    }
+  }
+
+  Future<void> initializeForUser(String userId) async {
+    final lastUserId = await _storage.read(key: _lastUserKey);
+
+    if (lastUserId != null && lastUserId != userId) {
+      await _db.clearAllUserData();
+    }
+
+    await _storage.write(key: _lastUserKey, value: userId);
+    await pullFromSupabase(userId);
+    await seedIfNeeded(userId);
+    triggerSync();
+  }
+
+  Future<void> pullFromSupabase(String userId) async {
+    try {
+      final catsData =
+          await supabase.from('cats').select().eq('user_id', userId);
+      for (final row in catsData) {
+        await _db.into(_db.cats).insertOnConflictUpdate(
+              CatsCompanion.insert(
+                id: row['id'] as String,
+                name: row['name'] as String,
+                breed: Value(row['breed'] as String?),
+                dateOfBirth: Value(row['date_of_birth'] != null
+                    ? DateTime.parse(row['date_of_birth'] as String)
+                    : null),
+                weightKg: Value((row['weight_kg'] as num?)?.toDouble()),
+                photoPath: Value(row['photo_path'] as String?),
+                quickLogTypesJson:
+                    Value(row['quick_log_types_json'] as String?),
+                screeningDone:
+                    Value(row['screening_done'] as bool? ?? false),
+              ),
+            );
+      }
+
+      final eventsData =
+          await supabase.from('events').select().eq('user_id', userId);
+      for (final row in eventsData) {
+        await _db.into(_db.events).insertOnConflictUpdate(
+              EventsCompanion.insert(
+                id: row['id'] as String,
+                catId: row['cat_id'] as String,
+                eventType: row['event_type'] as String,
+                notes: Value(row['notes'] as String?),
+                metadataJson: Value(row['metadata_json'] as String?),
+                loggedAt: Value(
+                    DateTime.parse(row['logged_at'] as String)),
+                createdAt: Value(
+                    DateTime.parse(row['created_at'] as String)),
+              ),
+            );
+      }
+
+      final settingsData = await supabase
+          .from('notification_settings')
+          .select()
+          .eq('user_id', userId);
+      for (final row in settingsData) {
+        await _db.into(_db.notificationSettings).insertOnConflictUpdate(
+              NotificationSettingsCompanion.insert(
+                id: row['id'] as String,
+                eventType: row['event_type'] as String,
+                thresholdHours: row['threshold_hours'] as int,
+                enabled: Value(row['enabled'] as bool? ?? true),
+              ),
+            );
+      }
+
+      final schedulesData = await supabase
+          .from('feeding_schedules')
+          .select()
+          .eq('user_id', userId);
+      for (final row in schedulesData) {
+        await _db.into(_db.feedingSchedules).insertOnConflictUpdate(
+              FeedingSchedulesCompanion.insert(
+                id: row['id'] as String,
+                catId: row['cat_id'] as String,
+                timesPerDay: row['times_per_day'] as int,
+                enabled: Value(row['enabled'] as bool? ?? true),
+              ),
+            );
+      }
+
+      final slotCatIds =
+          schedulesData.map((s) => s['cat_id'] as String).toSet();
+      for (final catId in slotCatIds) {
+        final slotsData = await supabase
+            .from('feeding_slots')
+            .select()
+            .eq('cat_id', catId);
+        for (final row in slotsData) {
+          await _db.into(_db.feedingSlots).insertOnConflictUpdate(
+                FeedingSlotsCompanion.insert(
+                  id: row['id'] as String,
+                  scheduleId: row['schedule_id'] as String,
+                  catId: row['cat_id'] as String,
+                  label: row['label'] as String,
+                  hour: row['hour'] as int,
+                  minute: row['minute'] as int,
+                  sortOrder: row['sort_order'] as int,
+                ),
+              );
+        }
+      }
+    } catch (_) {
+      // Offline or error — use whatever is already in the local DB.
     }
   }
 

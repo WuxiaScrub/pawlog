@@ -18,7 +18,6 @@ final autoSyncProvider = Provider<void>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user != null) {
     final sync = ref.read(syncServiceProvider);
-    unawaited(sync.seedIfNeeded(user.id));
-    sync.triggerSync();
+    unawaited(sync.initializeForUser(user.id));
   }
 });
