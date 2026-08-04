@@ -105,6 +105,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: 'io.supabase.pawlog://login-callback',
+          queryParams: {'prompt': 'select_account'},
         );
         await clearAuthSkipped();
         return;

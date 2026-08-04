@@ -29,6 +29,10 @@ class PawLogApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       home: const _Root(),
+      // OAuth callbacks (/?code=...) are handled by supabase_flutter's deep
+      // link listener, but Flutter's navigator also tries to route them.
+      onGenerateRoute: (_) =>
+          MaterialPageRoute(builder: (_) => const _Root()),
     );
   }
 }

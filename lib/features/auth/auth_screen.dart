@@ -81,6 +81,7 @@ class _AuthScreenState extends State<AuthScreen> {
         await supabase.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: 'io.supabase.pawlog://login-callback',
+          queryParams: {'prompt': 'select_account'},
         );
         return;
       }
