@@ -135,6 +135,15 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
+  Future<void> clearAllUserData() async {
+    await delete(syncQueue).go();
+    await delete(feedingSlots).go();
+    await delete(feedingSchedules).go();
+    await delete(events).go();
+    await delete(notificationSettings).go();
+    await delete(cats).go();
+  }
+
   Future<void> _ensureNotificationSettingsEventTypeUnique() {
     return customStatement(
       'CREATE UNIQUE INDEX IF NOT EXISTS '

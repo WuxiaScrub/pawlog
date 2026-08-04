@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/supabase_client.dart';
 
@@ -106,6 +107,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           OAuthProvider.google,
           redirectTo: 'io.supabase.pawlog://login-callback',
           queryParams: {'prompt': 'select_account'},
+          authScreenLaunchMode: LaunchMode.externalApplication,
         );
         await clearAuthSkipped();
         return;
