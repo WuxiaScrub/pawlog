@@ -4,6 +4,16 @@
 
 Before every `git push`, run `flutter pub get` (or `dart pub get` if Flutter CLI is unavailable) and verify it succeeds with no dependency conflicts. Do NOT push if dependency resolution fails. When upgrading any package, check that all transitive dependency constraints are compatible — especially `timezone`, `intl`, and other packages shared between `flutter_local_notifications`, `flutter_timezone`, and other dependencies.
 
+## DO NOT TOUCH: iOS Google Sign-In uses OAuth, not native signInWithIdToken (CRITICAL)
+
+In `welcome_screen.dart` and `auth_screen.dart`, the `_signInWithGoogle()` method has a `Platform.isIOS` branch that uses `signInWithOAuth` (PKCE flow) instead of the native `GoogleSignIn` + `signInWithIdToken` path. **This is not redundant — DO NOT remove, simplify, or merge it with the Android path.**
+
+**Why it exists:** `google_sign_in` 6.x on iOS wraps Google's native SDK, which silently embeds a `nonce` claim in the ID token. The Dart plugin never exposes the raw nonce value. When `signInWithIdToken` sends the token to Supabase GoTrue without a matching `nonce` parameter, GoTrue rejects it with: *"Passed nonce and nonce in id_token should either both exist or not."* The `signInWithOAuth` (PKCE) flow handles nonce negotiation internally, avoiding the mismatch entirely.
+
+**This has regressed 3+ times** because the iOS OAuth branch looks like unnecessary complexity when you're focused on a different feature — it appears to do the same thing as the native flow but with a different mechanism. It is load-bearing. Do not collapse the platform branches, do not replace the iOS OAuth call with `GoogleSignIn().signIn()`, and do not pass `_iosClientId` to a `GoogleSignIn` constructor to "unify" the flow.
+
+**When can this be removed?** Only when `google_sign_in` is upgraded to 7.x, which exposes a `nonce` parameter — see the "Upgrade google_sign_in 6.x → 7.x" section in this document for the migration plan.
+
 ## Project Summary
 
 PawLog is a cat-care companion app built in Flutter, targeting Android as its first public release. It helps cat owners effortlessly log daily care events via voice or tap, receive smart reminders when care is overdue, and build a rich health history to share with their vet.
