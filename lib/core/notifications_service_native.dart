@@ -101,10 +101,10 @@ class NotificationsService {
         }
       } else {
         await _plugin.show(
-          type.index,
-          'PawLog reminder',
-          '${type.label} is overdue.',
-          _notificationDetails(),
+          id: type.index,
+          title: 'PawLog reminder',
+          body: '${type.label} is overdue.',
+          notificationDetails: _notificationDetails(),
         );
       }
     }
@@ -129,11 +129,11 @@ class NotificationsService {
     );
 
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzDate,
-      _notificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tzDate,
+      notificationDetails: _notificationDetails(
         channelId: channelId ?? _overdueChannelId,
         channelName: channelName ?? _overdueChannelName,
       ),
