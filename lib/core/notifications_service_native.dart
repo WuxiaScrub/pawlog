@@ -18,8 +18,10 @@ class NotificationsService {
   static const _overdueChannelName = 'Overdue Reminders';
   static const _headsUpChannelId = 'upcoming_reminders';
   static const _headsUpChannelName = 'Upcoming Reminders';
-  static const _headsUpLeadHours = 48;
   static const _headsUpMinThresholdHours = 168;
+  static const _headsUpShortMaxThresholdHours = 336; // 14 days
+  static const _headsUpShortLeadHours = 24;
+  static const _headsUpLongLeadHours = 48;
 
   static Future<void> initializeTimezone() async {
     tz_data.initializeTimeZones();
@@ -83,8 +85,12 @@ class NotificationsService {
         );
 
         if (setting.thresholdHours >= _headsUpMinThresholdHours) {
+          final leadHours =
+              setting.thresholdHours <= _headsUpShortMaxThresholdHours
+                  ? _headsUpShortLeadHours
+                  : _headsUpLongLeadHours;
           final headsUpAt =
-              dueAt.subtract(const Duration(hours: _headsUpLeadHours));
+              dueAt.subtract(Duration(hours: leadHours));
           if (headsUpAt.isAfter(now)) {
             final daysLeft =
                 dueAt.difference(headsUpAt).inHours ~/ 24;
