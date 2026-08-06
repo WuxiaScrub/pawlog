@@ -7,6 +7,7 @@ import '../../models/event_type.dart';
 import '../../providers/cats_provider.dart';
 import '../../providers/events_provider.dart';
 import '../../providers/feeding_provider.dart';
+import '../../providers/medication_schedule_provider.dart';
 import '../../providers/voice_provider.dart';
 import '../cats/cat_avatar.dart';
 import 'log_event_sheet.dart';
@@ -22,6 +23,7 @@ class HomeScreen extends ConsumerWidget {
     final eventsAsync = ref.watch(eventsStreamProvider(cat.id));
     final scheduleAsync = ref.watch(feedingScheduleStreamProvider(cat.id));
     final hasFeedingSchedule = scheduleAsync.value != null;
+    final medStatusAsync = ref.watch(todaysMedicationStatusProvider(cat.id));
 
     return Scaffold(
       appBar: AppBar(
@@ -60,6 +62,11 @@ class HomeScreen extends ConsumerWidget {
         children: [
           if (hasFeedingSchedule) ...[
             _TodaysFeedingsCard(catId: cat.id),
+            const SizedBox(height: 24),
+          ],
+          if (medStatusAsync.value != null &&
+              medStatusAsync.value!.isNotEmpty) ...[
+            _TodaysMedicationsCard(catId: cat.id),
             const SizedBox(height: 24),
           ],
           Row(
@@ -371,6 +378,88 @@ class _TodaysFeedingsCard extends ConsumerWidget {
                 child: LinearProgressIndicator(),
               ),
               error: (e, _) => Text('Error loading feedings: $e'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TodaysMedicationsCard extends ConsumerWidget {
+  const _TodaysMedicationsCard({required this.catId});
+
+  final String catId;
+
+  Future<void> _markTaken(WidgetRef ref, MedicationDoseStatus status) {
+    return ref.read(eventsRepositoryProvider).logEvent(
+      catId: catId,
+      eventType: CatEventType.medication,
+      notes: status.schedule.name,
+      metadata: {
+        'schedule_id': status.schedule.id,
+        'medication_name': status.schedule.name,
+        if (status.schedule.dosage != null) 'dosage': status.schedule.dosage,
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(todaysMedicationStatusProvider(catId));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Today's Medications",
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            statusAsync.when(
+              data: (statuses) {
+                if (statuses.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No medications due today.'),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final status in statuses)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          status.isTaken
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: status.isTaken ? Colors.green : null,
+                        ),
+                        title: Text(status.schedule.name),
+                        subtitle: Text(
+                          status.isTaken
+                              ? 'Taken at ${DateFormat.jm().format(status.takenAt!)}'
+                              : '${status.schedule.hour.toString().padLeft(2, '0')}:${status.schedule.minute.toString().padLeft(2, '0')}'
+                                  '${status.schedule.dosage != null ? '  ·  ${status.schedule.dosage}' : ''}',
+                        ),
+                        trailing: status.isTaken
+                            ? null
+                            : FilledButton(
+                                onPressed: () => _markTaken(ref, status),
+                                child: const Text('Mark taken'),
+                              ),
+                      ),
+                  ],
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: LinearProgressIndicator(),
+              ),
+              error: (e, _) => Text('Error loading medications: $e'),
             ),
           ],
         ),

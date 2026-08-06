@@ -3,6 +3,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
+import '../core/database.dart';
 import '../models/event_type.dart';
 import '../providers/notification_settings_provider.dart';
 
@@ -22,6 +23,9 @@ class NotificationsService {
   static const _headsUpShortMaxThresholdHours = 336; // 14 days
   static const _headsUpShortLeadHours = 24;
   static const _headsUpLongLeadHours = 48;
+  static const _medChannelId = 'medication_reminders';
+  static const _medChannelName = 'Medication Reminders';
+  static const _medNotificationIdBase = 1000;
 
   static Future<void> initializeTimezone() async {
     tz_data.initializeTimeZones();
@@ -49,6 +53,7 @@ class NotificationsService {
   Future<void> rescheduleAll({
     required List<dynamic> events,
     required Map<CatEventType, EffectiveSetting> settings,
+    List<MedicationSchedule> medicationSchedules = const [],
   }) async {
     await init();
 
@@ -112,6 +117,82 @@ class NotificationsService {
           body: '${type.label} is overdue.',
           notificationDetails: _notificationDetails(),
         );
+      }
+    }
+
+    await _scheduleMedicationNotifications(medicationSchedules, now);
+  }
+
+  Future<void> _scheduleMedicationNotifications(
+    List<MedicationSchedule> schedules,
+    DateTime now,
+  ) async {
+    var notifIndex = 0;
+
+    for (final schedule in schedules) {
+      if (!schedule.enabled) continue;
+
+      if (schedule.recurrence == 'daily') {
+        for (var dayOffset = 0; dayOffset < 7; dayOffset++) {
+          final date = now.add(Duration(days: dayOffset));
+          final scheduledDate = DateTime(
+            date.year, date.month, date.day,
+            schedule.hour, schedule.minute,
+          );
+          if (scheduledDate.isBefore(now)) continue;
+          if (schedule.endDate != null &&
+              scheduledDate.isAfter(schedule.endDate!)) {
+            break;
+          }
+
+          await _scheduleNotification(
+            id: _medNotificationIdBase + notifIndex,
+            title: 'Medication reminder',
+            body: 'Time for ${schedule.name}'
+                '${schedule.dosage != null ? ' (${schedule.dosage})' : ''}',
+            scheduledDate: scheduledDate,
+            channelId: _medChannelId,
+            channelName: _medChannelName,
+          );
+          notifIndex++;
+        }
+      } else {
+        final startDay = DateTime(
+          schedule.startDate.year,
+          schedule.startDate.month,
+          schedule.startDate.day,
+        );
+        final todayDay = DateTime(now.year, now.month, now.day);
+        final daysSinceStart = todayDay.difference(startDay).inDays;
+        final remainder = daysSinceStart % schedule.intervalDays;
+        final daysUntilNext = remainder == 0 ? 0 : schedule.intervalDays - remainder;
+
+        final nextDate = todayDay.add(Duration(days: daysUntilNext));
+        final scheduledDate = DateTime(
+          nextDate.year, nextDate.month, nextDate.day,
+          schedule.hour, schedule.minute,
+        );
+
+        final effectiveDate =
+            scheduledDate.isBefore(now)
+                ? scheduledDate.add(Duration(days: schedule.intervalDays))
+                : scheduledDate;
+
+        if (schedule.endDate != null &&
+            effectiveDate.isAfter(schedule.endDate!)) {
+          continue;
+        }
+
+        await _scheduleNotification(
+          id: _medNotificationIdBase + notifIndex,
+          title: 'Medication reminder',
+          body: 'Time for ${schedule.name}'
+              '${schedule.dosage != null ? ' (${schedule.dosage})' : ''}',
+          scheduledDate: effectiveDate,
+          channelId: _medChannelId,
+          channelName: _medChannelName,
+        );
+        notifIndex++;
       }
     }
   }

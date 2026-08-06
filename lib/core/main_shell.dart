@@ -6,6 +6,7 @@ import '../features/events/home_screen.dart';
 import '../features/events/log_history_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../providers/events_provider.dart';
+import '../providers/medication_schedule_provider.dart';
 import '../providers/notification_settings_provider.dart';
 import 'database.dart';
 import 'notifications_service.dart';
@@ -32,6 +33,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       ref.listenManual(eventsStreamProvider(widget.cat.id),
           (_, __) => _reschedule());
       ref.listenManual(effectiveSettingsProvider, (_, __) => _reschedule());
+      ref.listenManual(medicationSchedulesStreamProvider(widget.cat.id),
+          (_, __) => _reschedule());
     });
   }
 
@@ -39,7 +42,13 @@ class _MainShellState extends ConsumerState<MainShell> {
     final events =
         ref.read(eventsStreamProvider(widget.cat.id)).value ?? [];
     final settings = ref.read(effectiveSettingsProvider);
-    _notificationsService.rescheduleAll(events: events, settings: settings);
+    final medSchedules =
+        ref.read(medicationSchedulesStreamProvider(widget.cat.id)).value ?? [];
+    _notificationsService.rescheduleAll(
+      events: events,
+      settings: settings,
+      medicationSchedules: medSchedules,
+    );
   }
 
   @override

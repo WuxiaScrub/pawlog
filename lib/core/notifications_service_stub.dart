@@ -1,3 +1,4 @@
+import '../core/database.dart';
 import '../models/event_type.dart';
 import '../providers/notification_settings_provider.dart';
 
@@ -13,5 +14,6 @@ class NotificationsService {
   Future<void> rescheduleAll({
     required List<dynamic> events,
     required Map<CatEventType, EffectiveSetting> settings,
+    List<MedicationSchedule> medicationSchedules = const [],
   }) async {}
 }

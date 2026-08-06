@@ -16,6 +16,7 @@ import '../../providers/voice_provider.dart';
 import '../auth/auth_screen.dart';
 import '../cats/cat_profile_setup_screen.dart';
 import '../feeding/feeding_schedule_setup_screen.dart';
+import '../medication/medication_schedule_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, required this.cat});
@@ -52,6 +53,17 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => FeedingScheduleSetupScreen(cat: cat),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.medication),
+            title: const Text('Medication schedules'),
+            subtitle: const Text('Set reminders for each medication'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => MedicationScheduleScreen(cat: cat),
               ),
             ),
           ),

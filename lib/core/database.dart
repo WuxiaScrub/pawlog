@@ -79,6 +79,26 @@ class FeedingSlots extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class MedicationSchedules extends Table {
+  TextColumn get id => text()();
+  TextColumn get catId => text().references(Cats, #id)();
+  TextColumn get name => text()();
+  TextColumn get dosage => text().nullable()();
+  IntColumn get hour => integer()();
+  IntColumn get minute => integer()();
+  // 'daily' or 'every_n_days'
+  TextColumn get recurrence => text().withDefault(const Constant('daily'))();
+  IntColumn get intervalDays => integer().withDefault(const Constant(1))();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('SyncQueueItem')
 class SyncQueue extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -97,6 +117,7 @@ class SyncQueue extends Table {
     NotificationSettings,
     FeedingSchedules,
     FeedingSlots,
+    MedicationSchedules,
     SyncQueue,
   ],
 )
@@ -104,7 +125,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection('pawlog'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -132,11 +153,15 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await m.createTable(syncQueue);
       }
+      if (from < 6) {
+        await m.createTable(medicationSchedules);
+      }
     },
   );
 
   Future<void> clearAllUserData() async {
     await delete(syncQueue).go();
+    await delete(medicationSchedules).go();
     await delete(feedingSlots).go();
     await delete(feedingSchedules).go();
     await delete(events).go();
