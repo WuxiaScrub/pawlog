@@ -2195,6 +2195,708 @@ class FeedingSlotsCompanion extends UpdateCompanion<FeedingSlot> {
   }
 }
 
+class $MedicationSchedulesTable extends MedicationSchedules
+    with TableInfo<$MedicationSchedulesTable, MedicationSchedule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MedicationSchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _catIdMeta = const VerificationMeta('catId');
+  @override
+  late final GeneratedColumn<String> catId = GeneratedColumn<String>(
+    'cat_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES cats (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dosageMeta = const VerificationMeta('dosage');
+  @override
+  late final GeneratedColumn<String> dosage = GeneratedColumn<String>(
+    'dosage',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hourMeta = const VerificationMeta('hour');
+  @override
+  late final GeneratedColumn<int> hour = GeneratedColumn<int>(
+    'hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _minuteMeta = const VerificationMeta('minute');
+  @override
+  late final GeneratedColumn<int> minute = GeneratedColumn<int>(
+    'minute',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recurrenceMeta = const VerificationMeta(
+    'recurrence',
+  );
+  @override
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+    'recurrence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('daily'),
+  );
+  static const VerificationMeta _intervalDaysMeta = const VerificationMeta(
+    'intervalDays',
+  );
+  @override
+  late final GeneratedColumn<int> intervalDays = GeneratedColumn<int>(
+    'interval_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    catId,
+    name,
+    dosage,
+    hour,
+    minute,
+    recurrence,
+    intervalDays,
+    startDate,
+    endDate,
+    enabled,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'medication_schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MedicationSchedule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('cat_id')) {
+      context.handle(
+        _catIdMeta,
+        catId.isAcceptableOrUnknown(data['cat_id']!, _catIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_catIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('dosage')) {
+      context.handle(
+        _dosageMeta,
+        dosage.isAcceptableOrUnknown(data['dosage']!, _dosageMeta),
+      );
+    }
+    if (data.containsKey('hour')) {
+      context.handle(
+        _hourMeta,
+        hour.isAcceptableOrUnknown(data['hour']!, _hourMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hourMeta);
+    }
+    if (data.containsKey('minute')) {
+      context.handle(
+        _minuteMeta,
+        minute.isAcceptableOrUnknown(data['minute']!, _minuteMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_minuteMeta);
+    }
+    if (data.containsKey('recurrence')) {
+      context.handle(
+        _recurrenceMeta,
+        recurrence.isAcceptableOrUnknown(data['recurrence']!, _recurrenceMeta),
+      );
+    }
+    if (data.containsKey('interval_days')) {
+      context.handle(
+        _intervalDaysMeta,
+        intervalDays.isAcceptableOrUnknown(
+          data['interval_days']!,
+          _intervalDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MedicationSchedule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MedicationSchedule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      catId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cat_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      dosage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dosage'],
+      ),
+      hour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour'],
+      )!,
+      minute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minute'],
+      )!,
+      recurrence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence'],
+      )!,
+      intervalDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}interval_days'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MedicationSchedulesTable createAlias(String alias) {
+    return $MedicationSchedulesTable(attachedDatabase, alias);
+  }
+}
+
+class MedicationSchedule extends DataClass
+    implements Insertable<MedicationSchedule> {
+  final String id;
+  final String catId;
+  final String name;
+  final String? dosage;
+  final int hour;
+  final int minute;
+  final String recurrence;
+  final int intervalDays;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final bool enabled;
+  final DateTime createdAt;
+  const MedicationSchedule({
+    required this.id,
+    required this.catId,
+    required this.name,
+    this.dosage,
+    required this.hour,
+    required this.minute,
+    required this.recurrence,
+    required this.intervalDays,
+    required this.startDate,
+    this.endDate,
+    required this.enabled,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['cat_id'] = Variable<String>(catId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || dosage != null) {
+      map['dosage'] = Variable<String>(dosage);
+    }
+    map['hour'] = Variable<int>(hour);
+    map['minute'] = Variable<int>(minute);
+    map['recurrence'] = Variable<String>(recurrence);
+    map['interval_days'] = Variable<int>(intervalDays);
+    map['start_date'] = Variable<DateTime>(startDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    map['enabled'] = Variable<bool>(enabled);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  MedicationSchedulesCompanion toCompanion(bool nullToAbsent) {
+    return MedicationSchedulesCompanion(
+      id: Value(id),
+      catId: Value(catId),
+      name: Value(name),
+      dosage: dosage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dosage),
+      hour: Value(hour),
+      minute: Value(minute),
+      recurrence: Value(recurrence),
+      intervalDays: Value(intervalDays),
+      startDate: Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      enabled: Value(enabled),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory MedicationSchedule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MedicationSchedule(
+      id: serializer.fromJson<String>(json['id']),
+      catId: serializer.fromJson<String>(json['catId']),
+      name: serializer.fromJson<String>(json['name']),
+      dosage: serializer.fromJson<String?>(json['dosage']),
+      hour: serializer.fromJson<int>(json['hour']),
+      minute: serializer.fromJson<int>(json['minute']),
+      recurrence: serializer.fromJson<String>(json['recurrence']),
+      intervalDays: serializer.fromJson<int>(json['intervalDays']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'catId': serializer.toJson<String>(catId),
+      'name': serializer.toJson<String>(name),
+      'dosage': serializer.toJson<String?>(dosage),
+      'hour': serializer.toJson<int>(hour),
+      'minute': serializer.toJson<int>(minute),
+      'recurrence': serializer.toJson<String>(recurrence),
+      'intervalDays': serializer.toJson<int>(intervalDays),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'enabled': serializer.toJson<bool>(enabled),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  MedicationSchedule copyWith({
+    String? id,
+    String? catId,
+    String? name,
+    Value<String?> dosage = const Value.absent(),
+    int? hour,
+    int? minute,
+    String? recurrence,
+    int? intervalDays,
+    DateTime? startDate,
+    Value<DateTime?> endDate = const Value.absent(),
+    bool? enabled,
+    DateTime? createdAt,
+  }) => MedicationSchedule(
+    id: id ?? this.id,
+    catId: catId ?? this.catId,
+    name: name ?? this.name,
+    dosage: dosage.present ? dosage.value : this.dosage,
+    hour: hour ?? this.hour,
+    minute: minute ?? this.minute,
+    recurrence: recurrence ?? this.recurrence,
+    intervalDays: intervalDays ?? this.intervalDays,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    enabled: enabled ?? this.enabled,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  MedicationSchedule copyWithCompanion(MedicationSchedulesCompanion data) {
+    return MedicationSchedule(
+      id: data.id.present ? data.id.value : this.id,
+      catId: data.catId.present ? data.catId.value : this.catId,
+      name: data.name.present ? data.name.value : this.name,
+      dosage: data.dosage.present ? data.dosage.value : this.dosage,
+      hour: data.hour.present ? data.hour.value : this.hour,
+      minute: data.minute.present ? data.minute.value : this.minute,
+      recurrence: data.recurrence.present
+          ? data.recurrence.value
+          : this.recurrence,
+      intervalDays: data.intervalDays.present
+          ? data.intervalDays.value
+          : this.intervalDays,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MedicationSchedule(')
+          ..write('id: $id, ')
+          ..write('catId: $catId, ')
+          ..write('name: $name, ')
+          ..write('dosage: $dosage, ')
+          ..write('hour: $hour, ')
+          ..write('minute: $minute, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('intervalDays: $intervalDays, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('enabled: $enabled, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    catId,
+    name,
+    dosage,
+    hour,
+    minute,
+    recurrence,
+    intervalDays,
+    startDate,
+    endDate,
+    enabled,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MedicationSchedule &&
+          other.id == this.id &&
+          other.catId == this.catId &&
+          other.name == this.name &&
+          other.dosage == this.dosage &&
+          other.hour == this.hour &&
+          other.minute == this.minute &&
+          other.recurrence == this.recurrence &&
+          other.intervalDays == this.intervalDays &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.enabled == this.enabled &&
+          other.createdAt == this.createdAt);
+}
+
+class MedicationSchedulesCompanion extends UpdateCompanion<MedicationSchedule> {
+  final Value<String> id;
+  final Value<String> catId;
+  final Value<String> name;
+  final Value<String?> dosage;
+  final Value<int> hour;
+  final Value<int> minute;
+  final Value<String> recurrence;
+  final Value<int> intervalDays;
+  final Value<DateTime> startDate;
+  final Value<DateTime?> endDate;
+  final Value<bool> enabled;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const MedicationSchedulesCompanion({
+    this.id = const Value.absent(),
+    this.catId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.dosage = const Value.absent(),
+    this.hour = const Value.absent(),
+    this.minute = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.intervalDays = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MedicationSchedulesCompanion.insert({
+    required String id,
+    required String catId,
+    required String name,
+    this.dosage = const Value.absent(),
+    required int hour,
+    required int minute,
+    this.recurrence = const Value.absent(),
+    this.intervalDays = const Value.absent(),
+    required DateTime startDate,
+    this.endDate = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       catId = Value(catId),
+       name = Value(name),
+       hour = Value(hour),
+       minute = Value(minute),
+       startDate = Value(startDate);
+  static Insertable<MedicationSchedule> custom({
+    Expression<String>? id,
+    Expression<String>? catId,
+    Expression<String>? name,
+    Expression<String>? dosage,
+    Expression<int>? hour,
+    Expression<int>? minute,
+    Expression<String>? recurrence,
+    Expression<int>? intervalDays,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<bool>? enabled,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (catId != null) 'cat_id': catId,
+      if (name != null) 'name': name,
+      if (dosage != null) 'dosage': dosage,
+      if (hour != null) 'hour': hour,
+      if (minute != null) 'minute': minute,
+      if (recurrence != null) 'recurrence': recurrence,
+      if (intervalDays != null) 'interval_days': intervalDays,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (enabled != null) 'enabled': enabled,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MedicationSchedulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? catId,
+    Value<String>? name,
+    Value<String?>? dosage,
+    Value<int>? hour,
+    Value<int>? minute,
+    Value<String>? recurrence,
+    Value<int>? intervalDays,
+    Value<DateTime>? startDate,
+    Value<DateTime?>? endDate,
+    Value<bool>? enabled,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return MedicationSchedulesCompanion(
+      id: id ?? this.id,
+      catId: catId ?? this.catId,
+      name: name ?? this.name,
+      dosage: dosage ?? this.dosage,
+      hour: hour ?? this.hour,
+      minute: minute ?? this.minute,
+      recurrence: recurrence ?? this.recurrence,
+      intervalDays: intervalDays ?? this.intervalDays,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      enabled: enabled ?? this.enabled,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (catId.present) {
+      map['cat_id'] = Variable<String>(catId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (dosage.present) {
+      map['dosage'] = Variable<String>(dosage.value);
+    }
+    if (hour.present) {
+      map['hour'] = Variable<int>(hour.value);
+    }
+    if (minute.present) {
+      map['minute'] = Variable<int>(minute.value);
+    }
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
+    }
+    if (intervalDays.present) {
+      map['interval_days'] = Variable<int>(intervalDays.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MedicationSchedulesCompanion(')
+          ..write('id: $id, ')
+          ..write('catId: $catId, ')
+          ..write('name: $name, ')
+          ..write('dosage: $dosage, ')
+          ..write('hour: $hour, ')
+          ..write('minute: $minute, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('intervalDays: $intervalDays, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('enabled: $enabled, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncQueueTable extends SyncQueue
     with TableInfo<$SyncQueueTable, SyncQueueItem> {
   @override
@@ -2609,6 +3311,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $FeedingSlotsTable feedingSlots = $FeedingSlotsTable(this);
+  late final $MedicationSchedulesTable medicationSchedules =
+      $MedicationSchedulesTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -2620,6 +3324,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     notificationSettings,
     feedingSchedules,
     feedingSlots,
+    medicationSchedules,
     syncQueue,
   ];
 }
@@ -2707,6 +3412,30 @@ final class $$CatsTableReferences
     ).filter((f) => f.catId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_feedingSlotsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $MedicationSchedulesTable,
+    List<MedicationSchedule>
+  >
+  _medicationSchedulesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.medicationSchedules,
+        aliasName: 'cats__id__medication_schedules__cat_id',
+      );
+
+  $$MedicationSchedulesTableProcessedTableManager get medicationSchedulesRefs {
+    final manager = $$MedicationSchedulesTableTableManager(
+      $_db,
+      $_db.medicationSchedules,
+    ).filter((f) => f.catId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _medicationSchedulesRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2832,6 +3561,31 @@ class $$CatsTableFilterComposer extends Composer<_$AppDatabase, $CatsTable> {
           }) => $$FeedingSlotsTableFilterComposer(
             $db: $db,
             $table: $db.feedingSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> medicationSchedulesRefs(
+    Expression<bool> Function($$MedicationSchedulesTableFilterComposer f) f,
+  ) {
+    final $$MedicationSchedulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.medicationSchedules,
+      getReferencedColumn: (t) => t.catId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MedicationSchedulesTableFilterComposer(
+            $db: $db,
+            $table: $db.medicationSchedules,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3012,6 +3766,32 @@ class $$CatsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> medicationSchedulesRefs<T extends Object>(
+    Expression<T> Function($$MedicationSchedulesTableAnnotationComposer a) f,
+  ) {
+    final $$MedicationSchedulesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.medicationSchedules,
+          getReferencedColumn: (t) => t.catId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$MedicationSchedulesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.medicationSchedules,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$CatsTableTableManager
@@ -3031,6 +3811,7 @@ class $$CatsTableTableManager
             bool eventsRefs,
             bool feedingSchedulesRefs,
             bool feedingSlotsRefs,
+            bool medicationSchedulesRefs,
           })
         > {
   $$CatsTableTableManager(_$AppDatabase db, $CatsTable table)
@@ -3103,6 +3884,7 @@ class $$CatsTableTableManager
                 eventsRefs = false,
                 feedingSchedulesRefs = false,
                 feedingSlotsRefs = false,
+                medicationSchedulesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -3110,6 +3892,7 @@ class $$CatsTableTableManager
                     if (eventsRefs) db.events,
                     if (feedingSchedulesRefs) db.feedingSchedules,
                     if (feedingSlotsRefs) db.feedingSlots,
+                    if (medicationSchedulesRefs) db.medicationSchedules,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -3163,6 +3946,26 @@ class $$CatsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (medicationSchedulesRefs)
+                        await $_getPrefetchedData<
+                          Cat,
+                          $CatsTable,
+                          MedicationSchedule
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CatsTableReferences
+                              ._medicationSchedulesRefsTable(db),
+                          managerFromTypedResult: (p0) => $$CatsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).medicationSchedulesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.catId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3187,6 +3990,7 @@ typedef $$CatsTableProcessedTableManager =
         bool eventsRefs,
         bool feedingSchedulesRefs,
         bool feedingSlotsRefs,
+        bool medicationSchedulesRefs,
       })
     >;
 typedef $$EventsTableCreateCompanionBuilder =
@@ -4601,6 +5405,479 @@ typedef $$FeedingSlotsTableProcessedTableManager =
       FeedingSlot,
       PrefetchHooks Function({bool scheduleId, bool catId})
     >;
+typedef $$MedicationSchedulesTableCreateCompanionBuilder =
+    MedicationSchedulesCompanion Function({
+      required String id,
+      required String catId,
+      required String name,
+      Value<String?> dosage,
+      required int hour,
+      required int minute,
+      Value<String> recurrence,
+      Value<int> intervalDays,
+      required DateTime startDate,
+      Value<DateTime?> endDate,
+      Value<bool> enabled,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$MedicationSchedulesTableUpdateCompanionBuilder =
+    MedicationSchedulesCompanion Function({
+      Value<String> id,
+      Value<String> catId,
+      Value<String> name,
+      Value<String?> dosage,
+      Value<int> hour,
+      Value<int> minute,
+      Value<String> recurrence,
+      Value<int> intervalDays,
+      Value<DateTime> startDate,
+      Value<DateTime?> endDate,
+      Value<bool> enabled,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$MedicationSchedulesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $MedicationSchedulesTable,
+          MedicationSchedule
+        > {
+  $$MedicationSchedulesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CatsTable _catIdTable(_$AppDatabase db) =>
+      db.cats.createAlias('medication_schedules__cat_id__cats__id');
+
+  $$CatsTableProcessedTableManager get catId {
+    final $_column = $_itemColumn<String>('cat_id')!;
+
+    final manager = $$CatsTableTableManager(
+      $_db,
+      $_db.cats,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_catIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$MedicationSchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $MedicationSchedulesTable> {
+  $$MedicationSchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dosage => $composableBuilder(
+    column: $table.dosage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minute => $composableBuilder(
+    column: $table.minute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intervalDays => $composableBuilder(
+    column: $table.intervalDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CatsTableFilterComposer get catId {
+    final $$CatsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableFilterComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MedicationSchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $MedicationSchedulesTable> {
+  $$MedicationSchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dosage => $composableBuilder(
+    column: $table.dosage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minute => $composableBuilder(
+    column: $table.minute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intervalDays => $composableBuilder(
+    column: $table.intervalDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CatsTableOrderingComposer get catId {
+    final $$CatsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableOrderingComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MedicationSchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MedicationSchedulesTable> {
+  $$MedicationSchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get dosage =>
+      $composableBuilder(column: $table.dosage, builder: (column) => column);
+
+  GeneratedColumn<int> get hour =>
+      $composableBuilder(column: $table.hour, builder: (column) => column);
+
+  GeneratedColumn<int> get minute =>
+      $composableBuilder(column: $table.minute, builder: (column) => column);
+
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get intervalDays => $composableBuilder(
+    column: $table.intervalDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$CatsTableAnnotationComposer get catId {
+    final $$CatsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.catId,
+      referencedTable: $db.cats,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CatsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.cats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MedicationSchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MedicationSchedulesTable,
+          MedicationSchedule,
+          $$MedicationSchedulesTableFilterComposer,
+          $$MedicationSchedulesTableOrderingComposer,
+          $$MedicationSchedulesTableAnnotationComposer,
+          $$MedicationSchedulesTableCreateCompanionBuilder,
+          $$MedicationSchedulesTableUpdateCompanionBuilder,
+          (MedicationSchedule, $$MedicationSchedulesTableReferences),
+          MedicationSchedule,
+          PrefetchHooks Function({bool catId})
+        > {
+  $$MedicationSchedulesTableTableManager(
+    _$AppDatabase db,
+    $MedicationSchedulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MedicationSchedulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MedicationSchedulesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MedicationSchedulesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> catId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> dosage = const Value.absent(),
+                Value<int> hour = const Value.absent(),
+                Value<int> minute = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<int> intervalDays = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MedicationSchedulesCompanion(
+                id: id,
+                catId: catId,
+                name: name,
+                dosage: dosage,
+                hour: hour,
+                minute: minute,
+                recurrence: recurrence,
+                intervalDays: intervalDays,
+                startDate: startDate,
+                endDate: endDate,
+                enabled: enabled,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String catId,
+                required String name,
+                Value<String?> dosage = const Value.absent(),
+                required int hour,
+                required int minute,
+                Value<String> recurrence = const Value.absent(),
+                Value<int> intervalDays = const Value.absent(),
+                required DateTime startDate,
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MedicationSchedulesCompanion.insert(
+                id: id,
+                catId: catId,
+                name: name,
+                dosage: dosage,
+                hour: hour,
+                minute: minute,
+                recurrence: recurrence,
+                intervalDays: intervalDays,
+                startDate: startDate,
+                endDate: endDate,
+                enabled: enabled,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MedicationSchedulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({catId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (catId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.catId,
+                                referencedTable:
+                                    $$MedicationSchedulesTableReferences
+                                        ._catIdTable(db),
+                                referencedColumn:
+                                    $$MedicationSchedulesTableReferences
+                                        ._catIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MedicationSchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MedicationSchedulesTable,
+      MedicationSchedule,
+      $$MedicationSchedulesTableFilterComposer,
+      $$MedicationSchedulesTableOrderingComposer,
+      $$MedicationSchedulesTableAnnotationComposer,
+      $$MedicationSchedulesTableCreateCompanionBuilder,
+      $$MedicationSchedulesTableUpdateCompanionBuilder,
+      (MedicationSchedule, $$MedicationSchedulesTableReferences),
+      MedicationSchedule,
+      PrefetchHooks Function({bool catId})
+    >;
 typedef $$SyncQueueTableCreateCompanionBuilder =
     SyncQueueCompanion Function({
       Value<int> id,
@@ -4829,6 +6106,8 @@ class $AppDatabaseManager {
       $$FeedingSchedulesTableTableManager(_db, _db.feedingSchedules);
   $$FeedingSlotsTableTableManager get feedingSlots =>
       $$FeedingSlotsTableTableManager(_db, _db.feedingSlots);
+  $$MedicationSchedulesTableTableManager get medicationSchedules =>
+      $$MedicationSchedulesTableTableManager(_db, _db.medicationSchedules);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
 }
