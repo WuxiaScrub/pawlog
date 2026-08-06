@@ -254,7 +254,7 @@ class TranscriptMatcher {
 
     remaining = remaining.replaceFirst(
       RegExp(
-        r'\s*(and|so|then|also|now|today|already|again|too|though|okay|ok|yeah|yep|right)\s*$',
+        r'\s*(and|so|then|also|now|today|already|again|too|though|okay|ok|yeah|yep|right|just|like|recently|finally|basically|literally|actually|really|apparently)\s*$',
         caseSensitive: false,
       ),
       '',
