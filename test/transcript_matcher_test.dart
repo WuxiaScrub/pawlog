@@ -552,5 +552,23 @@ void main() {
       expect(r, isNotNull);
       expect(r!.notes, 'bowl is cracked');
     });
+
+    test('strips trailing "just" without pronoun', () {
+      final r = matcher.tryMatch('Just scooped the litter');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
+    test('strips trailing "recently"', () {
+      final r = matcher.tryMatch('scooped the litter recently');
+      expect(r, isNotNull);
+      expect(r!.notes, isNull);
+    });
+
+    test('preserves meaningful short notes after filler cleanup', () {
+      final r = matcher.tryMatch('she threw up on the rug');
+      expect(r, isNotNull);
+      expect(r!.notes, 'on the rug');
+    });
   });
 }

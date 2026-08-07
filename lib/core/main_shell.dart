@@ -64,7 +64,12 @@ class _MainShellState extends ConsumerState<MainShell> {
       body: IndexedStack(index: _index, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          if (i != _index) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+          }
+          setState(() => _index = i);
+        },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.history), label: 'History'),

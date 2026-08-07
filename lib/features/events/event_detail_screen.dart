@@ -86,6 +86,7 @@ class EventDetailScreen extends ConsumerWidget {
                 SnackBar(
                   content: Text('${deletedType.label} deleted'),
                   duration: const Duration(seconds: 5),
+                  showCloseIcon: true,
                   action: SnackBarAction(
                     label: 'Undo',
                     onPressed: () {
